@@ -10,10 +10,7 @@ import {
   completeAnthropicText,
   normalizeAnthropicModelAccessError,
 } from "./providers/anthropic.js";
-import {
-  completeGoogleDocument,
-  completeGoogleText,
-} from "./providers/google.js";
+import { completeGoogleDocument, completeGoogleText } from "./providers/google.js";
 import {
   resolveAnthropicModel,
   resolveGoogleModel,

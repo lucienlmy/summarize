@@ -160,8 +160,10 @@ describe("daemon cli", () => {
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith("/health")) return new Response(JSON.stringify({ ok: true }), { status: 200 });
-      if (url.endsWith("/v1/ping")) return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      if (url.endsWith("/health"))
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      if (url.endsWith("/v1/ping"))
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
       throw new Error(`Unexpected fetch: ${url}`);
     });
 

@@ -42,8 +42,7 @@ export function normalizeGoogleAssistantError(
 ): Error | null {
   const raw = typeof response?.errorMessage === "string" ? response.errorMessage : "";
   if (!raw.trim() && response?.stopReason !== "error") return null;
-  const message =
-    extractGoogleErrorMessage(raw) ?? `Google request failed for model "${modelId}".`;
+  const message = extractGoogleErrorMessage(raw) ?? `Google request failed for model "${modelId}".`;
   if (/not found|not supported|Call ListModels/i.test(message)) {
     return new Error(`Google API rejected model "${modelId}": ${message}`);
   }

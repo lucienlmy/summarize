@@ -33,10 +33,9 @@ describe("daemon config", () => {
     expect(() => normalizeDaemonToken("short-token")).toThrow(/Token too short/);
     expect(normalizeDaemonToken("  1234567890abcdef  ")).toBe("1234567890abcdef");
     expect(() => normalizeDaemonTokens([])).toThrow(/Missing tokens/);
-    expect(normalizeDaemonTokens(["  1234567890abcdef  ", "1234567890abcdef", "abcdef1234567890"])).toEqual([
-      "1234567890abcdef",
-      "abcdef1234567890",
-    ]);
+    expect(
+      normalizeDaemonTokens(["  1234567890abcdef  ", "1234567890abcdef", "abcdef1234567890"]),
+    ).toEqual(["1234567890abcdef", "abcdef1234567890"]);
 
     expect(normalizeDaemonPort(undefined)).toBe(DAEMON_PORT_DEFAULT);
     expect(normalizeDaemonPort(3000.9)).toBe(3000);

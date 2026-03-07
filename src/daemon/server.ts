@@ -5,7 +5,6 @@ import path from "node:path";
 import { Writable } from "node:stream";
 import type { CacheState } from "../cache.js";
 import type { SlideExtractionResult, SlideSettings } from "../slides/index.js";
-import { daemonConfigTokens, type DaemonConfig } from "./config.js";
 import { loadSummarizeConfig } from "../config.js";
 import { createDaemonLogger } from "../logging/daemon.js";
 import { runWithProcessContext, setProcessObserver } from "../processes.js";
@@ -20,6 +19,7 @@ import { resolveSlideImagePath, resolveSlideSettings } from "../slides/index.js"
 import { resolvePackageVersion } from "../version.js";
 import { completeAgentResponse, streamAgentResponse } from "./agent.js";
 import { type DaemonRequestedMode, resolveAutoDaemonMode } from "./auto-mode.js";
+import { daemonConfigTokens, type DaemonConfig } from "./config.js";
 import { DAEMON_HOST, DAEMON_PORT_DEFAULT } from "./constants.js";
 import { resolveDaemonLogPaths } from "./launchd.js";
 import { buildModelPickerOptions } from "./models.js";

@@ -522,7 +522,9 @@ describe("llm generate/stream", () => {
 
     expect(result.text).toBe("ok");
     expect(result.canonicalModelId).toBe("google/gemini-2.5-flash");
-    expect((mocks.completeSimple.mock.calls[0]?.[0] as MockModel).id).toBe("gemini-3-flash-preview");
+    expect((mocks.completeSimple.mock.calls[0]?.[0] as MockModel).id).toBe(
+      "gemini-3-flash-preview",
+    );
     expect((mocks.completeSimple.mock.calls[1]?.[0] as MockModel).id).toBe("gemini-2.5-flash");
   });
 

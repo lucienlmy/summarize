@@ -151,30 +151,18 @@ const DEFAULT_RULES: AutoRule[] = [
   },
   {
     when: ["image"],
-    candidates: [
-      "google/gemini-3-flash",
-      "openai/gpt-5-mini",
-      "anthropic/claude-sonnet-4-5",
-    ],
+    candidates: ["google/gemini-3-flash", "openai/gpt-5-mini", "anthropic/claude-sonnet-4-5"],
   },
   {
     when: ["website", "youtube", "text"],
     bands: [
       {
         token: { max: 50_000 },
-        candidates: [
-          "google/gemini-3-flash",
-          "openai/gpt-5-mini",
-          "anthropic/claude-sonnet-4-5",
-        ],
+        candidates: ["google/gemini-3-flash", "openai/gpt-5-mini", "anthropic/claude-sonnet-4-5"],
       },
       {
         token: { max: 200_000 },
-        candidates: [
-          "google/gemini-3-flash",
-          "openai/gpt-5-mini",
-          "anthropic/claude-sonnet-4-5",
-        ],
+        candidates: ["google/gemini-3-flash", "openai/gpt-5-mini", "anthropic/claude-sonnet-4-5"],
       },
       {
         candidates: [
@@ -188,11 +176,7 @@ const DEFAULT_RULES: AutoRule[] = [
   },
   {
     when: ["file"],
-    candidates: [
-      "google/gemini-3-flash",
-      "openai/gpt-5-mini",
-      "anthropic/claude-sonnet-4-5",
-    ],
+    candidates: ["google/gemini-3-flash", "openai/gpt-5-mini", "anthropic/claude-sonnet-4-5"],
   },
   {
     candidates: [
