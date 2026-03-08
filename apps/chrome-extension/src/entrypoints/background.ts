@@ -4,7 +4,6 @@ import type { SseSlidesData } from "../../../../src/shared/sse-events.js";
 import { buildDaemonRequestBody, buildSummarizeRequestBody } from "../lib/daemon-payload";
 import { createDaemonRecovery, isDaemonUnreachableError } from "../lib/daemon-recovery";
 import { createDaemonStatusTracker } from "../lib/daemon-status";
-import { logExtensionEvent } from "../lib/extension-logs";
 import { loadSettings, patchSettings } from "../lib/settings";
 import { canSummarizeUrl, extractFromTab, seekInTab } from "./background/content-script-bridge";
 import { daemonHealth, daemonPing, friendlyFetchError } from "./background/daemon-client";
@@ -12,6 +11,7 @@ import { ensureChatExtract, primeMediaHint, type CachedExtract } from "./backgro
 import { createHoverController, type HoverToBg } from "./background/hover-controller";
 import { bindBackgroundListeners } from "./background/listeners";
 import { handlePanelAgentRequest, handlePanelChatHistoryRequest } from "./background/panel-chat";
+import { createBackgroundPanelRuntime } from "./background/panel-runtime";
 import {
   handlePanelClosed,
   handlePanelReady,
@@ -20,8 +20,7 @@ import {
 } from "./background/panel-session-actions";
 import { createPanelSessionStore, type PanelSession } from "./background/panel-session-store";
 import { handlePanelSlidesContextRequest } from "./background/panel-slides-context";
-import { resolvePanelState, type PanelUiState } from "./background/panel-state";
-import { summarizeActiveTab as runPanelSummarize } from "./background/panel-summarize";
+import { type PanelUiState } from "./background/panel-state";
 import {
   buildSlidesText,
   getActiveTab,
@@ -147,101 +146,22 @@ export default defineBackground(() => {
     resolveLogLevel,
   });
 
-  const send = (session: BackgroundPanelSession, msg: BgToPanel) => {
-    if (!panelSessionStore.isPanelOpen(session)) return;
-    try {
-      session.port.postMessage(msg);
-    } catch {
-      // ignore (panel closed / reloading)
-    }
-  };
-  const sendStatus = (session: BackgroundPanelSession, status: string) =>
-    void send(session, { type: "ui:status", status });
-
-  const emitState = async (
-    session: BackgroundPanelSession,
-    status: string,
-    opts?: { checkRecovery?: boolean },
-  ) => {
-    const next = await resolvePanelState({
-      session,
-      status,
-      checkRecovery: opts?.checkRecovery,
+  const { send, sendStatus, emitState, summarizeActiveTab } =
+    createBackgroundPanelRuntime<BackgroundPanelSession>({
+      panelSessionStore,
       loadSettings,
       getActiveTab,
       daemonHealth,
       daemonPing,
-      panelSessionStore,
+      canSummarizeUrl,
       urlsMatch,
-      canSummarizeUrl,
-    });
-    void send(session, { type: "ui:state", state: next.state });
-
-    if (next.shouldRecover) {
-      void summarizeActiveTab(session, "daemon-recovered");
-      return;
-    }
-
-    if (next.shouldClearPending) {
-      session.daemonRecovery.clearPending();
-    }
-
-    if (next.shouldPrimeMedia) {
-      void primeMediaHint({
-        session,
-        ...next.shouldPrimeMedia,
-        panelSessionStore,
-        urlsMatch,
-        extractFromTab,
-        emitState: (currentSession, status) => {
-          void emitState(currentSession as BackgroundPanelSession, status);
-        },
-      });
-    }
-  };
-
-  const summarizeActiveTab = (
-    session: BackgroundPanelSession,
-    reason: string,
-    opts?: { refresh?: boolean; inputMode?: "page" | "video" },
-  ) =>
-    runPanelSummarize({
-      session,
-      reason,
-      opts,
-      loadSettings,
-      emitState: (currentSession, status) =>
-        emitState(currentSession as BackgroundPanelSession, status),
-      getActiveTab,
-      canSummarizeUrl,
-      panelSessionStore,
-      sendStatus: (status) => sendStatus(session, status),
-      send: (msg) => {
-        void send(session, msg as BgToPanel);
-      },
-      fetchImpl: fetch,
+      primeMediaHint,
       extractFromTab,
-      urlsMatch,
       buildSummarizeRequestBody,
       friendlyFetchError,
       isDaemonUnreachableError,
-      logPanel: (event, detail) => {
-        void (async () => {
-          const settings = await loadSettings();
-          if (!settings.extendedLogging) return;
-          const payload = detail ? { event, windowId: session.windowId, ...detail } : { event };
-          const detailPayload = detail
-            ? { windowId: session.windowId, ...detail }
-            : { windowId: session.windowId };
-          logExtensionEvent({
-            event,
-            detail: detailPayload,
-            scope: "panel:bg",
-            level: resolveLogLevel(event),
-          });
-          console.debug("[summarize][panel:bg]", payload);
-        })();
-      },
+      fetchImpl: fetch,
+      resolveLogLevel,
     });
 
   const handlePanelMessage = (session: BackgroundPanelSession, raw: PanelToBg) => {
