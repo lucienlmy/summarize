@@ -10,9 +10,12 @@ import { readPresetOrCustomValue, resolvePresetOrCustom } from "../../lib/combo"
 import { defaultSettings, loadSettings, saveSettings } from "../../lib/settings";
 import { applyTheme, type ColorMode, type ColorScheme } from "../../lib/theme";
 import { mountCheckbox } from "../../ui/zag-checkbox";
+import { createDaemonStatusChecker } from "./daemon-status";
 import { createLogsViewer } from "./logs-viewer";
+import { createModelPresetsController } from "./model-presets";
 import { mountOptionsPickers } from "./pickers";
 import { createProcessesViewer } from "./processes-viewer";
+import { createOptionsTabs } from "./tab-controller";
 
 declare const __SUMMARIZE_GIT_HASH__: string;
 declare const __SUMMARIZE_VERSION__: string;
@@ -22,18 +25,6 @@ function byId<T extends HTMLElement>(id: string): T {
   if (!el) throw new Error(`Missing #${id}`);
   return el as T;
 }
-
-const DAEMON_STATUS_TIMEOUT_MS = 5000;
-const DAEMON_STATUS_RETRY_DELAY_MS = 400;
-const DAEMON_STATUS_MAX_ATTEMPTS = 2;
-
-const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-const shouldRetryDaemon = (err: unknown) => {
-  if (err instanceof DOMException && err.name === "AbortError") return true;
-  const message = err instanceof Error ? err.message : "";
-  return message.toLowerCase() === "failed to fetch";
-};
 
 const formEl = byId<HTMLFormElement>("form");
 const statusEl = byId<HTMLSpanElement>("status");
@@ -105,7 +96,6 @@ const tabButtons = Array.from(tabsRoot.querySelectorAll<HTMLButtonElement>("[dat
 const tabPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-tab-panel]"));
 
 const tabStorageKey = "summarize:options-tab";
-const tabIds = new Set(tabButtons.map((button) => button.dataset.tab).filter(Boolean));
 
 let autoValue = defaultSettings.autoSummarize;
 let chatEnabledValue = defaultSettings.chatEnabled;
@@ -132,11 +122,6 @@ let saveSequence = 0;
 
 const setStatus = (text: string) => {
   statusEl.textContent = text;
-};
-
-const resolveActiveTab = (): string | null => {
-  const active = tabButtons.find((button) => button.getAttribute("aria-selected") === "true");
-  return active?.dataset.tab ?? null;
 };
 
 const logsLevelInputs = Array.from(
@@ -178,70 +163,25 @@ const processesViewer = createProcessesViewer({
   isActive: () => resolveActiveTab() === "processes",
 });
 
-const setActiveTab = (tabId: string) => {
-  if (!tabIds.has(tabId)) return;
-  for (const button of tabButtons) {
-    const isActive = button.dataset.tab === tabId;
-    button.setAttribute("aria-selected", isActive ? "true" : "false");
-    button.tabIndex = isActive ? 0 : -1;
-  }
-  for (const panel of tabPanels) {
-    const isActive = panel.dataset.tabPanel === tabId;
-    panel.hidden = !isActive;
-  }
-  localStorage.setItem(tabStorageKey, tabId);
-  if (tabId === "logs") {
-    logsViewer.handleTabActivated();
-  } else {
-    logsViewer.handleTabDeactivated();
-  }
-  if (tabId === "processes") {
-    processesViewer.handleTabActivated();
-  } else {
-    processesViewer.handleTabDeactivated();
-  }
-};
-
-const storedTab = localStorage.getItem(tabStorageKey);
-const initialTab = storedTab && tabIds.has(storedTab) ? storedTab : "general";
-setActiveTab(initialTab);
-
-for (const button of tabButtons) {
-  button.addEventListener("click", () => {
-    const tabId = button.dataset.tab;
-    if (tabId) setActiveTab(tabId);
-  });
-}
-
-tabsRoot.addEventListener("keydown", (event) => {
-  if (
-    !(event instanceof KeyboardEvent) ||
-    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
-  ) {
-    return;
-  }
-  event.preventDefault();
-  const activeIndex = tabButtons.findIndex(
-    (button) => button.getAttribute("aria-selected") === "true",
-  );
-  if (activeIndex < 0) return;
-  const lastIndex = tabButtons.length - 1;
-  let nextIndex = activeIndex;
-  if (event.key === "ArrowLeft") {
-    nextIndex = activeIndex === 0 ? lastIndex : activeIndex - 1;
-  } else if (event.key === "ArrowRight") {
-    nextIndex = activeIndex === lastIndex ? 0 : activeIndex + 1;
-  } else if (event.key === "Home") {
-    nextIndex = 0;
-  } else if (event.key === "End") {
-    nextIndex = lastIndex;
-  }
-  const nextButton = tabButtons[nextIndex];
-  if (!nextButton) return;
-  const tabId = nextButton.dataset.tab;
-  if (!tabId) return;
-  setActiveTab(tabId);
-  nextButton.focus();
+const { resolveActiveTab } = createOptionsTabs({
+  root: tabsRoot,
+  buttons: tabButtons,
+  panels: tabPanels,
+  storageKey: tabStorageKey,
+  onLogsActiveChange: (active) => {
+    if (active) {
+      logsViewer.handleTabActivated();
+    } else {
+      logsViewer.handleTabDeactivated();
+    }
+  },
+  onProcessesActiveChange: (active) => {
+    if (active) {
+      processesViewer.handleTabActivated();
+    } else {
+      processesViewer.handleTabDeactivated();
+    }
+  },
 });
 
 let statusTimer = 0;
@@ -272,7 +212,7 @@ const saveNow = async () => {
     const current = await loadSettings();
     await saveSettings({
       token: tokenEl.value || defaultSettings.token,
-      model: readCurrentModelValue(),
+      model: modelPresets.readCurrentValue(),
       length: current.length,
       language: readPresetOrCustomValue({
         presetValue: languagePresetEl.value,
@@ -345,256 +285,16 @@ const resolveExtensionVersion = () => {
   return injected || chrome?.runtime?.getManifest?.().version || "";
 };
 
-const setDaemonStatus = (text: string, state?: "ok" | "warn" | "error") => {
-  const textEl = daemonStatusEl.querySelector<HTMLElement>(".daemonStatus__text");
-  if (textEl) {
-    textEl.textContent = text;
-  } else {
-    daemonStatusEl.textContent = text;
-  }
-  if (state) {
-    daemonStatusEl.dataset.state = state;
-  } else {
-    delete daemonStatusEl.dataset.state;
-  }
-};
+const { checkDaemonStatus } = createDaemonStatusChecker({
+  statusEl: daemonStatusEl,
+  getExtensionVersion: resolveExtensionVersion,
+});
 
-let daemonCheckId = 0;
-const fetchWithRetry = async (url: string, options: RequestInit = {}) => {
-  for (let attempt = 0; attempt < DAEMON_STATUS_MAX_ATTEMPTS; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), DAEMON_STATUS_TIMEOUT_MS);
-    try {
-      return await fetch(url, { ...options, signal: controller.signal });
-    } catch (error) {
-      if (attempt < DAEMON_STATUS_MAX_ATTEMPTS - 1 && shouldRetryDaemon(error)) {
-        window.clearTimeout(timeout);
-        await sleep(DAEMON_STATUS_RETRY_DELAY_MS * (attempt + 1));
-        continue;
-      }
-      throw error;
-    } finally {
-      window.clearTimeout(timeout);
-    }
-  }
-  throw new Error("health failed");
-};
-
-async function checkDaemonStatus(token: string) {
-  const trimmedToken = token.trim();
-  if (!trimmedToken) {
-    setDaemonStatus("Add token to verify daemon connection", "warn");
-    return;
-  }
-
-  daemonCheckId += 1;
-  const checkId = daemonCheckId;
-  setDaemonStatus("Checking daemon…");
-
-  try {
-    const res = await fetchWithRetry("http://127.0.0.1:8787/health");
-    if (checkId !== daemonCheckId) return;
-    if (!res.ok) {
-      setDaemonStatus(
-        `Daemon error (${res.status} ${res.statusText}) — run \`summarize daemon status\``,
-        "error",
-      );
-      return;
-    }
-    const json = (await res.json()) as { version?: unknown };
-    const daemonVersion = typeof json.version === "string" ? json.version.trim() : "";
-    const extVersion = resolveExtensionVersion();
-    const versionNote = daemonVersion ? `v${daemonVersion}` : "version unknown";
-
-    if (trimmedToken) {
-      try {
-        const ping = await fetchWithRetry("http://127.0.0.1:8787/v1/ping", {
-          headers: { Authorization: `Bearer ${trimmedToken}` },
-        });
-        if (checkId !== daemonCheckId) return;
-        if (!ping.ok) {
-          setDaemonStatus(
-            `Daemon ${versionNote} (token mismatch) — update token in side panel and Save`,
-            "warn",
-          );
-          return;
-        }
-      } catch {
-        if (checkId !== daemonCheckId) return;
-        setDaemonStatus(
-          `Daemon ${versionNote} (auth failed) — update token in side panel and Save`,
-          "warn",
-        );
-        return;
-      }
-    } else {
-      setDaemonStatus(`Daemon ${versionNote} (add token to verify)`, "warn");
-      return;
-    }
-
-    if (daemonVersion && extVersion && daemonVersion !== extVersion) {
-      setDaemonStatus(`Daemon ${versionNote} (extension v${extVersion})`, "warn");
-      return;
-    }
-
-    setDaemonStatus(`Daemon ${versionNote} connected`, "ok");
-  } catch {
-    if (checkId !== daemonCheckId) return;
-    setDaemonStatus(
-      "Daemon unreachable — run `summarize daemon status` and check ~/.summarize/logs/daemon.err.log",
-      "error",
-    );
-  }
-}
-
-function setDefaultModelPresets() {
-  modelPresetEl.innerHTML = "";
-  {
-    const auto = document.createElement("option");
-    auto.value = "auto";
-    auto.textContent = "Auto";
-    modelPresetEl.append(auto);
-  }
-  {
-    const custom = document.createElement("option");
-    custom.value = "custom";
-    custom.textContent = "Custom…";
-    modelPresetEl.append(custom);
-  }
-}
-
-function setModelPlaceholderFromDiscovery(discovery: {
-  providers?: unknown;
-  localModelsSource?: unknown;
-}) {
-  const hints: string[] = ["auto"];
-  const providers = discovery.providers;
-  if (providers && typeof providers === "object") {
-    const p = providers as Record<string, unknown>;
-    if (p.openrouter === true) hints.push("free");
-    if (p.openai === true) hints.push("openai/…");
-    if (p.anthropic === true) hints.push("anthropic/…");
-    if (p.google === true) hints.push("google/…");
-    if (p.xai === true) hints.push("xai/…");
-    if (p.zai === true) hints.push("zai/…");
-    if (p.cliClaude === true) hints.push("cli/claude");
-    if (p.cliGemini === true) hints.push("cli/gemini");
-    if (p.cliCodex === true) hints.push("cli/codex");
-    if (p.cliAgent === true) hints.push("cli/agent");
-  }
-  if (discovery.localModelsSource && typeof discovery.localModelsSource === "object") {
-    hints.push("local: openai/<id>");
-  }
-  modelCustomEl.placeholder = hints.join(" / ");
-}
-
-function readCurrentModelValue(): string {
-  return readPresetOrCustomValue({
-    presetValue: modelPresetEl.value,
-    customValue: modelCustomEl.value,
-    defaultValue: defaultSettings.model,
-  });
-}
-
-function setModelValue(value: string) {
-  const next = value.trim() || defaultSettings.model;
-  const optionValues = new Set(Array.from(modelPresetEl.options).map((o) => o.value));
-  if (optionValues.has(next) && next !== "custom") {
-    modelPresetEl.value = next;
-    modelCustomEl.hidden = true;
-    return;
-  }
-  modelPresetEl.value = "custom";
-  modelCustomEl.hidden = false;
-  modelCustomEl.value = next;
-}
-
-function captureModelSelection() {
-  return {
-    presetValue: modelPresetEl.value,
-    customValue: modelCustomEl.value,
-  };
-}
-
-function restoreModelSelection(selection: { presetValue: string; customValue: string }) {
-  if (selection.presetValue === "custom") {
-    modelPresetEl.value = "custom";
-    modelCustomEl.hidden = false;
-    modelCustomEl.value = selection.customValue;
-    return;
-  }
-  const optionValues = new Set(Array.from(modelPresetEl.options).map((o) => o.value));
-  if (optionValues.has(selection.presetValue) && selection.presetValue !== "custom") {
-    modelPresetEl.value = selection.presetValue;
-    modelCustomEl.hidden = true;
-    return;
-  }
-  setModelValue(selection.presetValue);
-}
-
-async function refreshModelPresets(token: string) {
-  const selection = captureModelSelection();
-  const trimmed = token.trim();
-  if (!trimmed) {
-    setDefaultModelPresets();
-    setModelPlaceholderFromDiscovery({});
-    restoreModelSelection(selection);
-    return;
-  }
-  try {
-    const res = await fetch("http://127.0.0.1:8787/v1/models", {
-      headers: { Authorization: `Bearer ${trimmed}` },
-    });
-    if (!res.ok) {
-      setDefaultModelPresets();
-      restoreModelSelection(selection);
-      return;
-    }
-    const json = (await res.json()) as unknown;
-    if (!json || typeof json !== "object") return;
-    const obj = json as Record<string, unknown>;
-    if (obj.ok !== true) return;
-
-    setModelPlaceholderFromDiscovery({
-      providers: obj.providers,
-      localModelsSource: obj.localModelsSource,
-    });
-
-    const optionsRaw = obj.options;
-    if (!Array.isArray(optionsRaw)) return;
-
-    const options = optionsRaw
-      .map((item) => {
-        if (!item || typeof item !== "object") return null;
-        const record = item as { id?: unknown; label?: unknown };
-        const id = typeof record.id === "string" ? record.id.trim() : "";
-        const label = typeof record.label === "string" ? record.label.trim() : "";
-        if (!id) return null;
-        return { id, label };
-      })
-      .filter((x): x is { id: string; label: string } => x !== null);
-
-    if (options.length === 0) {
-      setDefaultModelPresets();
-      restoreModelSelection(selection);
-      return;
-    }
-
-    setDefaultModelPresets();
-    const seen = new Set(Array.from(modelPresetEl.options).map((o) => o.value));
-    for (const opt of options) {
-      if (seen.has(opt.id)) continue;
-      seen.add(opt.id);
-      const el = document.createElement("option");
-      el.value = opt.id;
-      el.textContent = opt.label ? `${opt.id} — ${opt.label}` : opt.id;
-      modelPresetEl.append(el);
-    }
-    restoreModelSelection(selection);
-  } catch {
-    // ignore
-  }
-}
+const modelPresets = createModelPresetsController({
+  presetEl: modelPresetEl,
+  customEl: modelCustomEl,
+  defaultValue: defaultSettings.model,
+});
 
 const languagePresets = [
   "auto",
@@ -1253,8 +953,8 @@ async function load() {
   const s = await loadSettings();
   tokenEl.value = s.token;
   void checkDaemonStatus(s.token);
-  await refreshModelPresets(s.token);
-  setModelValue(s.model);
+  await modelPresets.refreshPresets(s.token);
+  modelPresets.setValue(s.model);
   {
     const resolved = resolvePresetOrCustom({ value: s.language, presets: languagePresets });
     languagePresetEl.value = resolved.presetValue;
@@ -1313,7 +1013,7 @@ let refreshTimer = 0;
 tokenEl.addEventListener("input", () => {
   window.clearTimeout(refreshTimer);
   refreshTimer = window.setTimeout(() => {
-    void refreshModelPresets(tokenEl.value);
+    void modelPresets.refreshPresets(tokenEl.value);
     void checkDaemonStatus(tokenEl.value);
     logsViewer.handleTokenChanged();
     processesViewer.handleTokenChanged();
@@ -1345,12 +1045,8 @@ tokenCopyBtn.addEventListener("click", () => {
   void copyToken();
 });
 
-let modelRefreshAt = 0;
 const refreshModelsIfStale = () => {
-  const now = Date.now();
-  if (now - modelRefreshAt < 1500) return;
-  modelRefreshAt = now;
-  void refreshModelPresets(tokenEl.value);
+  modelPresets.refreshIfStale(tokenEl.value);
 };
 
 modelPresetEl.addEventListener("focus", refreshModelsIfStale);
