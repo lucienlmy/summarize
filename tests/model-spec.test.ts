@@ -33,7 +33,7 @@ describe("model spec parsing", () => {
     expect(parsed.kind).toBe("fixed");
     expect(parsed.transport).toBe("cli");
     expect(parsed.cliProvider).toBe("agent");
-    expect(parsed.cliModel).toBe("gpt-5.2");
+    expect(parsed.cliModel).toBe("auto");
     expect(parsed.requiredEnv).toBe("CLI_AGENT");
   });
 

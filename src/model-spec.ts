@@ -11,7 +11,7 @@ const DEFAULT_CLI_MODELS: Record<CliProvider, string | null> = {
   claude: "sonnet",
   codex: "gpt-5.2",
   gemini: "flash",
-  agent: "gpt-5.2",
+  agent: "auto",
   openclaw: "main",
   opencode: null,
 };
