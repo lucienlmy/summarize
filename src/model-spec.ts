@@ -2,19 +2,11 @@ import type { CliProvider } from "./config.js";
 import { normalizeGatewayStyleModelId, parseGatewayStyleModelId } from "./llm/model-id.js";
 import type { LlmProvider } from "./llm/model-id.js";
 import {
+  DEFAULT_CLI_MODELS,
   type RequiredModelEnv,
   requiredEnvForCliProvider,
   resolveRequiredEnvForModelId,
 } from "./llm/provider-capabilities.js";
-
-const DEFAULT_CLI_MODELS: Record<CliProvider, string | null> = {
-  claude: "sonnet",
-  codex: "gpt-5.2",
-  gemini: "flash",
-  agent: "auto",
-  openclaw: "main",
-  opencode: null,
-};
 
 export type FixedModelSpec =
   | {
