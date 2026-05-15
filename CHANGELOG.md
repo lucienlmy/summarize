@@ -10,6 +10,8 @@
 ### Fixes
 
 - Chrome extension: keep local-video slide E2E shutdown from hanging, reject malformed media durations and non-video YouTube container URLs, and sanitize invalid advanced settings before they reach daemon requests.
+- Timestamps: reject malformed transcript, key-moment, slide, summary, and side-panel chat timestamps before they become prompt context or seek links.
+- Slides: wait for background slide extraction to finish before URL flows exit, avoiding late cache writes during daemon shutdown.
 - Daemon slides: ignore request-provided slide output directories and keep extracted slide artifacts under `~/.summarize/slides` (#220, thanks @Hinotoi-agent).
 - Chrome extension automation: require confirmation before side-panel agent automation tools run, and report cancelled calls without applying navigation side effects (#219, thanks @Hinotoi-agent).
 - Chrome extension automation: guard the artifacts bridge so browser JS can only read or write artifacts while extension-owned automation has armed the tab (#222, thanks @Hinotoi-agent).
