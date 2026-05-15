@@ -124,6 +124,7 @@ export async function runUrlFlow({
 
   const pauseProgressLine = pauseProgress;
   activeHooks.setClearProgressBeforeStdout(pauseProgressLine);
+  let backgroundSlidesPromise: Promise<SlideExtractionResult | null> | null = null;
   try {
     let extracted = await extractionSession.fetchInitialExtract(url);
     let extractionUi = deriveExtractionUi(extracted);
@@ -214,7 +215,7 @@ export async function runUrlFlow({
     updateSummaryProgress();
 
     if (flags.slides) {
-      void slidesSession.runSlidesExtraction().catch((error) => {
+      backgroundSlidesPromise = slidesSession.runSlidesExtraction().catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
         writeSlidesBackgroundFailureWarning({ ctx, theme, message });
         writeVerbose(
@@ -224,6 +225,7 @@ export async function runUrlFlow({
           flags.verboseColor,
           io.envForRun,
         );
+        return null;
       });
     }
 
@@ -296,6 +298,7 @@ export async function runUrlFlow({
         slides: slidesSession.getSlidesExtracted() ?? slidesForPrompt ?? null,
         slidesOutput: slidesSession.slidesOutput,
       });
+      if (backgroundSlidesPromise) await backgroundSlidesPromise;
       return;
     }
 
@@ -317,7 +320,11 @@ export async function runUrlFlow({
       slides: slidesSession.getSlidesExtracted() ?? slidesForPrompt ?? null,
       slidesOutput: slidesSession.slidesOutput,
     });
+    if (backgroundSlidesPromise) await backgroundSlidesPromise;
   } finally {
+    if (backgroundSlidesPromise) {
+      await backgroundSlidesPromise;
+    }
     if (flags.progressEnabled) {
       process.off("SIGINT", handleSigint);
       process.off("SIGTERM", handleSigterm);
