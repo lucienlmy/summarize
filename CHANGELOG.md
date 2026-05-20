@@ -13,6 +13,7 @@
 - Daemon: cap concurrent summarize requests with an env-tunable limit so runaway extension/API clients receive a clear 429 instead of piling up background work.
 - Chrome extension: allow max-size page extraction payloads to reach the daemon instead of failing JSON body parsing before summarization starts.
 - CLI streaming: write interactive raw summary deltas as soon as they arrive instead of waiting for a newline before the first stdout output.
+- Chrome extension: stream OpenAI GPT-5 summaries with fast/reasoning options instead of waiting for a blocking completion.
 - Chrome extension automation: avoid duplicate content-script listeners when automation is injected more than once into the same tab.
 - Chrome extension options: keep slower process-log responses from overwriting the logs for a newly selected process.
 - Chrome extension: keep stale model discovery responses from reverting newer token results or user-selected models.

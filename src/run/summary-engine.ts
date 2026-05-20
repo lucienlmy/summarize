@@ -307,12 +307,9 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
       attempt.requestOptions,
       deps.openaiRequestOptionsOverride,
     );
-    const hasOpenAiRequestOptions =
-      parsedModelEffective.provider === "openai" && Boolean(requestOptions);
     const streamingEnabledForCall =
       allowStreaming &&
       deps.streamingEnabled &&
-      !hasOpenAiRequestOptions &&
       !modelResolution.forceStreamOff &&
       canStream({
         provider: parsedModelEffective.provider,
