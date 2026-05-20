@@ -8,6 +8,7 @@
 
 ### Fixes
 
+- CLI slides: keep local Ollama summaries from leaking planning text or malformed nested slide headings.
 - Daemon: block daemon URL-mode extraction from fetching loopback, private-network, link-local, and redirect targets that resolve to local networks, and disable unguarded `yt-dlp` media fetches in guarded daemon URL runs.
 - Chrome extension automation: require an extension-only native-input capability so page scripts cannot piggyback trusted input while automation is armed.
 - Chrome extension: keep stale summarize stream starts from canceling newer streams after token lookup races.
