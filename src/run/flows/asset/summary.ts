@@ -1,4 +1,3 @@
-import { countTokens } from "gpt-tokenizer";
 import { render as renderMarkdownAnsi } from "markdansi";
 import {
   buildAttachmentContentHash,
@@ -20,6 +19,7 @@ import type { ExecFileFn } from "../../../markitdown.js";
 import type { FixedModelSpec, RequestedModel } from "../../../model-spec.js";
 import { SUMMARY_LENGTH_TARGET_CHARACTERS, SUMMARY_SYSTEM_PROMPT } from "../../../prompts/index.js";
 import type { SummaryLength } from "../../../shared/contracts.js";
+import { countTokens } from "../../../tokenizer.js";
 import { type AssetAttachment, isUnsupportedAttachmentError } from "../../attachments.js";
 import {
   readLastSuccessfulCliProvider,

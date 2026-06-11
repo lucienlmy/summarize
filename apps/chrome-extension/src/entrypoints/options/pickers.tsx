@@ -3,7 +3,7 @@ import { createPortal } from "preact/compat";
 import type { ColorMode, ColorScheme } from "../../lib/theme";
 import { getOverlayRoot } from "../../ui/portal";
 import { SchemeChips } from "../../ui/scheme-chips";
-import { type SelectItem, useZagSelect } from "../../ui/zag-select";
+import { type SelectItem, useSelect } from "../../ui/select";
 
 type OptionsPickerState = {
   scheme: ColorScheme;
@@ -42,7 +42,7 @@ function SelectField({
 }: {
   label: string;
   labelClassName: string;
-  api: ReturnType<typeof useZagSelect>;
+  api: ReturnType<typeof useSelect>;
   triggerContent: (selectedLabel: string, selectedValue: string) => JSX.Element;
   optionContent: (item: SelectItem) => JSX.Element;
   items: SelectItem[];
@@ -87,7 +87,7 @@ function SelectField({
 }
 
 function OptionsPickers(props: OptionsPickerProps) {
-  const schemeApi = useZagSelect({
+  const schemeApi = useSelect({
     id: "options-scheme",
     items: schemeItems,
     value: props.scheme,
@@ -97,7 +97,7 @@ function OptionsPickers(props: OptionsPickerProps) {
     },
   });
 
-  const modeApi = useZagSelect({
+  const modeApi = useSelect({
     id: "options-mode",
     items: modeItems,
     value: props.mode,

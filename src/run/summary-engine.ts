@@ -1,4 +1,3 @@
-import { countTokens } from "gpt-tokenizer";
 import { createMarkdownStreamer, render as renderMarkdownAnsi } from "markdansi";
 import type { CliProvider } from "../config.js";
 import { isCliDisabled, runCliModel } from "../llm/cli.js";
@@ -8,6 +7,7 @@ import { parseGatewayStyleModelId } from "../llm/model-id.js";
 import { mergeRequestOptionsForProvider } from "../llm/model-options.js";
 import type { ModelRequestOptions, OpenAiReasoningEffort } from "../llm/model-options.js";
 import type { Prompt } from "../llm/prompt.js";
+import { countTokens } from "../tokenizer.js";
 import { formatCompactCount } from "../tty/format.js";
 import { createRetryLogger, writeVerbose } from "./logging.js";
 import { prepareMarkdownForTerminalStreaming } from "./markdown.js";

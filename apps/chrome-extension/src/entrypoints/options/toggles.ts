@@ -1,4 +1,4 @@
-import { mountCheckbox } from "../../ui/zag-checkbox";
+import { mountCheckbox } from "../../ui/checkbox";
 
 type BooleanToggleArgs = {
   root: HTMLElement;

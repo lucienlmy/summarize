@@ -1,6 +1,6 @@
 import { defaultSettings } from "../../lib/settings";
 import { applyTheme } from "../../lib/theme";
-import { mountCheckbox } from "../../ui/zag-checkbox";
+import { mountCheckbox } from "../../ui/checkbox";
 import { mountSidepanelLengthPicker, mountSidepanelPickers } from "./pickers";
 
 export function createAppearanceControls(options: {

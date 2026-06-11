@@ -1,5 +1,4 @@
 import { isTwitterStatusUrl, isYouTubeUrl } from "@steipete/summarize-core/content/url";
-import { countTokens } from "gpt-tokenizer";
 import {
   buildLanguageKey,
   buildLengthKey,
@@ -12,6 +11,7 @@ import { resolveGitHubModelsApiKey } from "../../../llm/github-models.js";
 import type { Prompt } from "../../../llm/prompt.js";
 import { buildAutoModelAttempts } from "../../../model-auto.js";
 import { SUMMARY_SYSTEM_PROMPT } from "../../../prompts/index.js";
+import { countTokens } from "../../../tokenizer.js";
 import {
   readLastSuccessfulCliProvider,
   writeLastSuccessfulCliProvider,

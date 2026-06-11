@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
-import { countTokens } from "gpt-tokenizer";
+import { countTokens } from "bpe-lite";
 
 const args = process.argv.slice(2);
 let filePath = null;
@@ -54,11 +54,11 @@ const measure = (label, fn) => {
 const estimateTokens = () => Math.ceil(text.length / 4);
 
 // Warm up tokenizer once to avoid first-run overhead in timing.
-countTokens(text);
+countTokens(text, "openai-o200k");
 
 console.log(`file=${filePath}`);
 console.log(`chars=${text.length} bytes=${byteLength}`);
 console.log(`iterations=${iterations}`);
 
 measure("estimate chars/4", estimateTokens);
-measure("gpt-tokenizer", () => countTokens(text));
+measure("bpe-lite o200k", () => countTokens(text, "openai-o200k"));

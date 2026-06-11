@@ -8,7 +8,7 @@ import { defaultSettings } from "../../lib/settings";
 import type { ColorMode, ColorScheme } from "../../lib/theme";
 import { getOverlayRoot } from "../../ui/portal";
 import { SchemeChips } from "../../ui/scheme-chips";
-import { type SelectItem, useZagSelect } from "../../ui/zag-select";
+import { type SelectItem, useSelect } from "../../ui/select";
 
 type SidepanelPickerState = {
   scheme: ColorScheme;
@@ -181,7 +181,7 @@ function SelectField({
   labelClassName: string;
   titleClassName?: string;
   pickerId?: string;
-  api: ReturnType<typeof useZagSelect>;
+  api: ReturnType<typeof useSelect>;
   triggerContent: (selectedLabel: string, selectedValue: string) => JSX.Element;
   optionContent: (item: SelectItem) => JSX.Element;
   items: SelectItem[];
@@ -253,7 +253,7 @@ function LengthField({
     setCustomValue(resolved.customValue);
   }, [resolved.customValue, resolved.presetValue]);
 
-  const api = useZagSelect({
+  const api = useSelect({
     id: "length",
     items: lengthItems,
     value: presetValue,
@@ -390,7 +390,7 @@ function LengthField({
 }
 
 function SidepanelPickers(props: SidepanelPickerProps) {
-  const schemeApi = useZagSelect({
+  const schemeApi = useSelect({
     id: "scheme",
     items: schemeItems,
     value: props.scheme,
@@ -400,7 +400,7 @@ function SidepanelPickers(props: SidepanelPickerProps) {
     },
   });
 
-  const modeApi = useZagSelect({
+  const modeApi = useSelect({
     id: "mode",
     items: modeItems,
     value: props.mode,
@@ -410,7 +410,7 @@ function SidepanelPickers(props: SidepanelPickerProps) {
     },
   });
 
-  const fontApi = useZagSelect({
+  const fontApi = useSelect({
     id: "font",
     items: fontItems,
     value: props.fontFamily,
@@ -511,7 +511,7 @@ function SummarizeControl(props: SummarizeControlProps) {
       ]
     : [{ value: "page", label: pageLabel }];
   const portalRoot = getOverlayRoot();
-  const api = useZagSelect({
+  const api = useSelect({
     id: "source",
     items: sourceItems,
     value: props.slidesEnabled ? "video-slides" : props.mode,
