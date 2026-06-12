@@ -95,6 +95,10 @@ Binary lookup:
 - `COPILOT_PATH` (optional override)
 - Otherwise uses `PATH`
 
+Run `summarize status` to list enabled CLI providers whose executable is currently available.
+`summarize status --verbose` also prints the resolved executable path and configured CLI model.
+Missing or disabled providers are omitted.
+
 ## Attachments (images/files)
 
 When a CLI attempt is used for an image or non-text file, Summarize switches to a

@@ -5,6 +5,7 @@
 ### Features
 
 - Website media: detect a primary embedded YouTube video, use free captions automatically, and combine its transcript with substantial article text; add `--embedded-video auto|off|prefer|both`.
+- CLI status: add `summarize status` with positive-only model/provider discovery, structured JSON, verbose details, and optional non-inference endpoint probes.
 
 ### Fixes
 

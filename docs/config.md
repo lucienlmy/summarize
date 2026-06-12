@@ -16,6 +16,22 @@ Default path:
 
 - `~/.summarize/config.json`
 
+## Status
+
+Inspect the effective model selection and positive provider setup:
+
+```bash
+summarize status
+summarize status --verbose
+summarize status --probe
+summarize status --json
+```
+
+The command omits missing providers and never prints secret values. API providers appear as
+`configured` when an effective key is present. Enabled CLI providers appear as `available` when
+their executable can be resolved. `--probe` checks supported OpenAI-compatible/local model-list
+endpoints without running inference and marks successful providers as `usable`.
+
 ## Precedence
 
 For `model`:

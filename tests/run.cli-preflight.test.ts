@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   attachRichHelp: vi.fn(),
   buildDaemonHelp: vi.fn(() => "DAEMON_HELP"),
   buildRefreshFreeHelp: vi.fn(() => "REFRESH_FREE_HELP"),
+  buildStatusHelp: vi.fn(() => "STATUS_HELP"),
   buildProgram: vi.fn(() => ({
     configureOutput: vi.fn(),
     outputHelp: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("../src/run/help.js", () => ({
   buildDaemonHelp: mocks.buildDaemonHelp,
   buildProgram: mocks.buildProgram,
   buildRefreshFreeHelp: mocks.buildRefreshFreeHelp,
+  buildStatusHelp: mocks.buildStatusHelp,
 }));
 
 import {
@@ -86,6 +88,21 @@ describe("run/cli-preflight", () => {
       }),
     ).toBe(true);
     expect(stdout.getText()).toContain("DAEMON_HELP");
+    expect(stderr.getText()).toBe("");
+  });
+
+  it("handleHelpRequest: prints status help", () => {
+    const stdout = collectStream();
+    const stderr = collectStream();
+    expect(
+      handleHelpRequest({
+        normalizedArgv: ["help", "status"],
+        envForRun: {},
+        stdout: stdout.stream,
+        stderr: stderr.stream,
+      }),
+    ).toBe(true);
+    expect(stdout.getText()).toContain("STATUS_HELP");
     expect(stderr.getText()).toBe("");
   });
 

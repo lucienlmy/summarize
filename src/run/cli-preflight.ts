@@ -8,6 +8,7 @@ import {
   buildProgram,
   buildRefreshFreeHelp,
   buildSlidesProgram,
+  buildStatusHelp,
   buildTranscriberHelp,
 } from "./help.js";
 
@@ -32,6 +33,10 @@ export function handleHelpRequest({
   }
   if (topic === "daemon") {
     stdout.write(`${buildDaemonHelp()}\n`);
+    return true;
+  }
+  if (topic === "status") {
+    stdout.write(`${buildStatusHelp()}\n`);
     return true;
   }
   if (topic === "slides") {

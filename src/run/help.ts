@@ -308,6 +308,7 @@ ${heading("Examples")}
   ${cmd('summarize "https://www.youtube.com/watch?v=..." --slides --extract')} ${dim("# full transcript + inline slides")}
   ${cmd('summarize slides "https://www.youtube.com/watch?v=..." --render auto')} ${dim("# slides-only mode with inline thumbnails")}
   ${cmd("summarize transcriber setup")} ${dim("# configure local ONNX transcription (parakeet/canary)")}
+  ${cmd("summarize status")} ${dim("# show configured and usable model providers")}
   ${cmd('summarize "https://example.com" --length 20k --max-output-tokens 2k --timeout 2m --model openai/gpt-5-mini')}
   ${cmd('summarize "https://example.com" --model openai/gpt-5.5 --fast --thinking medium')}
   ${cmd('summarize "https://example.com" --model openai/gpt-5.4 --service-tier fast --thinking low')}
@@ -393,6 +394,20 @@ export function buildRefreshFreeHelp(): string {
     "",
     "Writes ~/.summarize/config.json (models.free) with working OpenRouter :free candidates.",
     'With --set-default: also sets `model` to "free".',
+  ].join("\n");
+}
+
+export function buildStatusHelp(): string {
+  return [
+    "Usage: summarize status [--json] [--probe] [--verbose]",
+    "",
+    "Shows the effective model, configured presets, and configured or usable providers.",
+    "Missing providers are omitted. Secrets are never printed.",
+    "",
+    "Options:",
+    "  --json     Output structured JSON",
+    "  --probe    Probe supported model-list endpoints without running inference",
+    "  --verbose  Include executable paths, endpoint hosts, config sources, and preset candidates",
   ].join("\n");
 }
 

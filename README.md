@@ -162,6 +162,20 @@ If native `ffmpeg`/`ffprobe` are unavailable, Summarize uses the bundled WebAsse
 summarize "https://example.com"
 ```
 
+Inspect the effective model setup. Status only lists configured or usable providers; it never prints
+keys or missing-provider noise.
+
+```bash
+summarize status
+summarize status --verbose
+summarize status --probe
+summarize status --json
+```
+
+`--probe` checks supported model-list endpoints without running paid inference. CLI providers are
+reported as available when their enabled executable is present; API providers are reported as
+configured when an effective key is present.
+
 ### Inputs
 
 URLs or local paths:
@@ -608,6 +622,9 @@ summarize https://example.com/file.mp4 --video-mode transcript --lang en
 Single config location:
 
 - `~/.summarize/config.json`
+
+Run `summarize status` to inspect the effective default model, configured presets, and model
+providers available from config, environment variables, local endpoints, or installed CLIs.
 
 Supported keys today:
 

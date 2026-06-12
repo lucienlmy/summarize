@@ -17,6 +17,7 @@ import {
   resolvePromptOverride,
 } from "./runner-setup.js";
 import { handleSlidesCliRequest } from "./slides-cli.js";
+import { handleStatusCliRequest } from "./status-cli.js";
 import { handleTranscriberCliRequest } from "./transcriber-cli.js";
 
 type RunEnv = {
@@ -121,6 +122,9 @@ async function handleImmediateCliRequests(options: {
     return true;
   }
   if (await handleRefreshFreeRequest({ normalizedArgv, envForRun, fetchImpl, stdout, stderr })) {
+    return true;
+  }
+  if (await handleStatusCliRequest({ normalizedArgv, envForRun, fetchImpl, stdout })) {
     return true;
   }
   if (await handleDaemonCliRequest({ normalizedArgv, envForRun, fetchImpl, stdout, stderr })) {
