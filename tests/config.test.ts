@@ -37,7 +37,7 @@ describe("config loading", () => {
           { candidates: ["openai/gpt-5-nano", "openrouter/openai/gpt-5-nano"] },
         ],
       },
-      media: { videoMode: "auto" },
+      media: { videoMode: "auto", embeddedVideo: "both" },
     });
 
     const result = loadSummarizeConfig({ env: { HOME: root } });
@@ -54,7 +54,7 @@ describe("config loading", () => {
           { candidates: ["openai/gpt-5-nano", "openrouter/openai/gpt-5-nano"] },
         ],
       },
-      media: { videoMode: "auto" },
+      media: { videoMode: "auto", embeddedVideo: "both" },
     });
   });
 
@@ -335,7 +335,7 @@ describe("config loading", () => {
           },
         ],
       },
-      media: { videoMode: "nope" },
+      media: { videoMode: "nope", embeddedVideo: "nope" },
     });
     expect(loadSummarizeConfig({ env: { HOME: root } }).config).toEqual({
       model: {

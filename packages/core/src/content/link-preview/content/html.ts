@@ -20,8 +20,9 @@ import {
   finalizeExtractedLinkContent,
   pickFirstText,
   selectBaseContent,
+  selectEmbeddedVideoContent,
 } from "./utils.js";
-import { detectPrimaryVideoFromHtml } from "./video.js";
+import { detectPrimaryVideoDetailsFromHtml, resolveEmbeddedYoutubeDecision } from "./video.js";
 import { refreshYoutubeSourceMetrics } from "./youtube-source-metrics.js";
 import { extractYouTubeShortDescription } from "./youtube.js";
 
@@ -54,6 +55,7 @@ export async function buildResultFromHtmlDocument({
   maxCharacters,
   youtubeTranscriptMode,
   mediaTranscriptMode,
+  embeddedVideoMode,
   transcriptTimestamps,
   transcriptDiarization,
   transcriptVideoDownload,
@@ -70,6 +72,7 @@ export async function buildResultFromHtmlDocument({
   maxCharacters: number | null;
   youtubeTranscriptMode: FetchLinkContentOptions["youtubeTranscript"];
   mediaTranscriptMode: FetchLinkContentOptions["mediaTranscript"];
+  embeddedVideoMode: FetchLinkContentOptions["embeddedVideo"];
   transcriptTimestamps?: FetchLinkContentOptions["transcriptTimestamps"];
   transcriptDiarization?: FetchLinkContentOptions["transcriptDiarization"];
   transcriptVideoDownload?: FetchLinkContentOptions["transcriptVideoDownload"];
@@ -126,15 +129,25 @@ export async function buildResultFromHtmlDocument({
   const effectiveNormalizedWithDescription = preferDescription
     ? descriptionCandidate
     : effectiveNormalized;
-  const detectedVideo = detectPrimaryVideoFromHtml(html, url);
+  const videoDetection = detectPrimaryVideoDetailsFromHtml(html, url);
+  const detectedVideo = videoDetection?.video ?? null;
+  const resolvedEmbeddedVideoMode = embeddedVideoMode ?? "auto";
+  const embeddedYoutube = resolveEmbeddedYoutubeDecision({
+    pageUrl: url,
+    detection: videoDetection,
+    mode: resolvedEmbeddedVideoMode,
+    youtubeTranscriptMode: youtubeTranscriptMode ?? "auto",
+    mediaTranscriptMode: mediaTranscriptMode ?? "auto",
+  });
   const transcriptResolution = await resolveTranscriptForLink(url, html, deps, {
     timeoutMs,
-    youtubeTranscriptMode,
-    mediaTranscriptMode,
+    youtubeTranscriptMode: embeddedYoutube.youtubeTranscriptMode,
+    mediaTranscriptMode: embeddedYoutube.mediaTranscriptMode,
     transcriptTimestamps,
     transcriptDiarization,
     transcriptVideoDownload,
     cacheMode,
+    embeddedMediaUrl: embeddedYoutube.shouldUse ? embeddedYoutube.detection?.video.url : null,
   });
   await refreshYoutubeSourceMetrics({
     url,
@@ -148,17 +161,11 @@ export async function buildResultFromHtmlDocument({
 
   const youtubeDescription =
     transcriptResolution.text === null ? extractYouTubeShortDescription(html) : null;
-  const baseCandidate = youtubeDescription
+  let articleContent = youtubeDescription
     ? normalizeForPrompt(youtubeDescription)
     : effectiveNormalizedWithDescription;
-
-  let baseContent = selectBaseContent(
-    baseCandidate,
-    transcriptResolution.text,
-    transcriptResolution.segments,
-  );
-  if (baseContent === normalizedSegments) {
-    baseContent = stripLeadingTitle(baseContent, mergedTitle ?? title);
+  if (articleContent === normalizedSegments) {
+    articleContent = stripLeadingTitle(articleContent, mergedTitle ?? title);
   }
 
   const transcriptDiagnostics = ensureTranscriptDiagnostics(
@@ -210,7 +217,7 @@ export async function buildResultFromHtmlDocument({
         };
       }
 
-      baseContent = normalizedMarkdown;
+      articleContent = normalizedMarkdown;
       return {
         requested: true,
         used: true,
@@ -231,15 +238,30 @@ export async function buildResultFromHtmlDocument({
     }
   })();
 
+  const embeddedSelection =
+    embeddedYoutube.shouldUse && embeddedYoutube.detection
+      ? selectEmbeddedVideoContent({
+          articleContent,
+          transcriptText: transcriptResolution.text,
+          transcriptSegments: transcriptResolution.segments,
+          mode: resolvedEmbeddedVideoMode,
+          videoUrl: embeddedYoutube.detection.video.url,
+        })
+      : null;
+  const baseContent =
+    embeddedSelection?.baseContent ??
+    selectBaseContent(articleContent, transcriptResolution.text, transcriptResolution.segments);
+  const contentSections = embeddedSelection?.contentSections ?? null;
   const video = detectedVideo;
   const isVideoOnly =
     !transcriptResolution.text &&
-    baseContent.length < MIN_HTML_CONTENT_CHARACTERS &&
+    articleContent.length < MIN_HTML_CONTENT_CHARACTERS &&
     video !== null;
 
   return finalizeExtractedLinkContent({
     url,
     baseContent,
+    contentSections,
     maxCharacters,
     title: mergedTitle ?? title,
     description: mergedDescription ?? description,
@@ -252,6 +274,16 @@ export async function buildResultFromHtmlDocument({
       firecrawl: firecrawlDiagnostics,
       markdown: markdownDiagnostics,
       transcript: transcriptDiagnostics,
+      embeddedVideo: {
+        mode: resolvedEmbeddedVideoMode,
+        detected: embeddedYoutube.detection !== null,
+        used: Boolean(embeddedYoutube.shouldUse && transcriptResolution.text),
+        url: embeddedYoutube.detection?.video.url ?? null,
+        source: embeddedYoutube.detection?.source ?? null,
+        confidence: embeddedYoutube.detection?.confidence ?? null,
+        composition: embeddedSelection?.composition ?? "article",
+        notes: embeddedYoutube.notes,
+      },
     },
   });
 }

@@ -15,6 +15,7 @@ import type {
   CliConfig,
   CliProvider,
   CliProviderConfig,
+  EmbeddedVideoMode,
   EnvConfig,
   LoggingConfig,
   MediaCacheConfig,
@@ -234,7 +235,14 @@ export function parseMediaConfig(root: Record<string, unknown>) {
     value.videoMode === "understand"
       ? (value.videoMode as VideoMode)
       : undefined;
-  return videoMode ? { videoMode } : undefined;
+  const embeddedVideo =
+    value.embeddedVideo === "auto" ||
+    value.embeddedVideo === "off" ||
+    value.embeddedVideo === "prefer" ||
+    value.embeddedVideo === "both"
+      ? (value.embeddedVideo as EmbeddedVideoMode)
+      : undefined;
+  return videoMode || embeddedVideo ? { videoMode, embeddedVideo } : undefined;
 }
 
 export function parseSlidesConfig(root: Record<string, unknown>, path: string) {

@@ -236,6 +236,48 @@ describe("transcript cache integration", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("reuses a transcript cached by the canonical embedded YouTube URL", async () => {
+    const transcriptCache: TranscriptCache = {
+      get: vi.fn(async ({ url }) =>
+        url === "https://www.youtube.com/watch?v=abcdefghijk"
+          ? {
+              content: "shared cached transcript",
+              source: "captionTracks",
+              expired: false,
+              metadata: null,
+              resourceKey: "abcdefghijk",
+            }
+          : null,
+      ),
+      set: vi.fn(async () => {}),
+    };
+    const fetchMock = vi.fn(async () => {
+      throw new Error("provider should not run");
+    });
+
+    const result = await resolveTranscriptForLink(
+      "https://example.com/video",
+      '<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>',
+      {
+        fetch: fetchMock as unknown as typeof fetch,
+        apifyApiToken: null,
+        ytDlpPath: null,
+        groqApiKey: null,
+        falApiKey: null,
+        openaiApiKey: null,
+        scrapeWithFirecrawl: null,
+        convertHtmlToMarkdown: null,
+        transcriptCache,
+        readTweetWithBird: null,
+      },
+      { youtubeTranscriptMode: "web", cacheMode: "default" },
+    );
+
+    expect(result.text).toBe("shared cached transcript");
+    expect(result.diagnostics?.notes).toContain("canonical embedded YouTube URL");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("rejects embedded YouTube cache entries without a verifiable identity", async () => {
     const transcriptCache: TranscriptCache = {
       get: vi.fn(async () => ({

@@ -19,7 +19,7 @@ describe("model spec parsing", () => {
     expect(parsed.cliModel).toBe("sonnet");
   });
 
-  it("uses the Codex runtime default model when missing", () => {
+  it("defers bare Codex model selection to CLI execution", () => {
     const parsed = parseRequestedModelId("cli/codex");
     expect(parsed.kind).toBe("fixed");
     expect(parsed.transport).toBe("cli");

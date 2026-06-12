@@ -69,6 +69,14 @@ export function buildProgram() {
         .choices(["auto", "transcript", "understand"])
         .default("auto"),
     )
+    .addOption(
+      new Option(
+        "--embedded-video <mode>",
+        "Embedded YouTube handling: auto, off, prefer transcript, or combine article+transcript.",
+      )
+        .choices(["auto", "off", "prefer", "both"])
+        .default("auto"),
+    )
     .option(
       "--slides [value]",
       "Extract slides for YouTube/direct video URLs and render them inline inside the summary narrative (when supported). Combine with --extract to interleave slides in the full transcript.",

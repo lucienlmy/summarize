@@ -23,16 +23,21 @@ export async function fetchWithTimeout(
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
   consume?: (response: Response) => Promise<unknown>,
 ): Promise<unknown> {
-  if (init?.signal) {
-    const response = await fetchImpl(input, init ?? {});
-    return consume ? consume(response) : response;
-  }
-
   const controller = new AbortController();
+  const callerSignal = init?.signal;
   const normalizedTimeoutMs = Number.isFinite(timeoutMs) ? timeoutMs : DEFAULT_TIMEOUT_MS;
   const clampedTimeoutMs = Math.max(0, normalizedTimeoutMs);
+  let timedOut = false;
+  const abortFromCaller = () => controller.abort(callerSignal?.reason);
+  if (callerSignal?.aborted) {
+    abortFromCaller();
+  } else {
+    callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  }
 
   const timer = setTimeout(() => {
+    if (controller.signal.aborted) return;
+    timedOut = true;
     if (typeof DOMException === "function") {
       controller.abort(new DOMException("Request timed out", "AbortError"));
       return;
@@ -48,7 +53,7 @@ export async function fetchWithTimeout(
     const response = await fetchImpl(input, finalInit);
     return consume ? await consume(response) : response;
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (timedOut && error instanceof Error && error.name === "AbortError") {
       const timeoutError = new Error(`Fetch aborted after ${clampedTimeoutMs}ms`);
       timeoutError.name = "FetchTimeoutError";
       throw timeoutError;
@@ -56,5 +61,6 @@ export async function fetchWithTimeout(
     throw error;
   } finally {
     clearTimeout(timer);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
 }

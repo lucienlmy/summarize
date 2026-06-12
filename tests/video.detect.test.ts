@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { detectPrimaryVideoFromHtml } from "../packages/core/src/content/link-preview/content/video.js";
+import {
+  detectPrimaryVideoDetailsFromHtml,
+  detectPrimaryVideoFromHtml,
+} from "../packages/core/src/content/link-preview/content/video.js";
 
 const BASE_URL = "https://example.com/article";
 const YT_ID = "dQw4w9WgXcQ";
@@ -107,5 +110,47 @@ describe("detectPrimaryVideoFromHtml", () => {
   it("returns null when no usable video is present", () => {
     const html = "<div>No video here</div>";
     expect(detectPrimaryVideoFromHtml(html, BASE_URL)).toBeNull();
+  });
+
+  it("marks a unique iframe as high confidence", () => {
+    const html = `<iframe src="https://www.youtube.com/embed/${YT_ID}"></iframe>`;
+    expect(detectPrimaryVideoDetailsFromHtml(html, BASE_URL)).toMatchObject({
+      source: "iframe",
+      confidence: "high",
+      video: { kind: "youtube", url: `https://www.youtube.com/watch?v=${YT_ID}` },
+    });
+  });
+
+  it("marks unrelated multiple iframe videos as ambiguous", () => {
+    const html = `
+      <iframe src="https://www.youtube.com/embed/${YT_ID}"></iframe>
+      <iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>`;
+    expect(detectPrimaryVideoDetailsFromHtml(html, BASE_URL)).toMatchObject({
+      source: "iframe",
+      confidence: "medium",
+    });
+  });
+
+  it("prefers the sole video inside main content when several embeds exist", () => {
+    const html = `
+      <aside><iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe></aside>
+      <main><iframe src="https://www.youtube.com/embed/${YT_ID}"></iframe></main>`;
+    expect(detectPrimaryVideoDetailsFromHtml(html, BASE_URL)).toMatchObject({
+      source: "iframe",
+      confidence: "high",
+      video: { url: `https://www.youtube.com/watch?v=${YT_ID}` },
+    });
+  });
+
+  it("uses OpenGraph to disambiguate several iframe videos", () => {
+    const html = `
+      <meta property="og:video" content="https://www.youtube.com/embed/${YT_ID}">
+      <iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>
+      <iframe src="https://www.youtube.com/embed/${YT_ID}"></iframe>`;
+    expect(detectPrimaryVideoDetailsFromHtml(html, BASE_URL)).toMatchObject({
+      source: "open-graph",
+      confidence: "high",
+      video: { url: `https://www.youtube.com/watch?v=${YT_ID}` },
+    });
   });
 });

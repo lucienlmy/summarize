@@ -5,6 +5,7 @@ import {
   DEFAULT_CACHE_MODE,
   DEFAULT_TIMEOUT_MS,
   type ExtractedLinkContent,
+  type EmbeddedVideoMode,
   type FetchLinkContentOptions,
   type FinalizationArguments,
   type FirecrawlMode,
@@ -14,6 +15,7 @@ import {
 const WWW_PREFIX_PATTERN = /^www\./i;
 const TRANSCRIPT_LINE_SPLIT_PATTERN = /\r?\n/;
 const WORD_SPLIT_PATTERN = /\s+/g;
+const EMBEDDED_VIDEO_ARTICLE_THRESHOLD = 2000;
 
 function resolveMediaDurationSecondsFromTranscriptMetadata(
   metadata: Record<string, unknown> | null | undefined,
@@ -116,6 +118,67 @@ export function selectBaseContent(
   return `Transcript:\n${normalizedTranscript}`;
 }
 
+function normalizeTranscriptContent(
+  transcriptText: string | null,
+  transcriptSegments?: TranscriptResolution["segments"],
+): string | null {
+  const timedTranscript = transcriptSegments?.length
+    ? formatTranscriptSegments(transcriptSegments)
+    : null;
+  const transcriptCandidate = timedTranscript ?? transcriptText;
+  if (!transcriptCandidate) return null;
+  const normalized = normalizeForPrompt(transcriptCandidate);
+  return normalized.length > 0 ? normalized : null;
+}
+
+export function selectEmbeddedVideoContent({
+  articleContent,
+  transcriptText,
+  transcriptSegments,
+  mode,
+  videoUrl,
+}: {
+  articleContent: string;
+  transcriptText: string | null;
+  transcriptSegments?: TranscriptResolution["segments"];
+  mode: EmbeddedVideoMode;
+  videoUrl: string;
+}): {
+  baseContent: string;
+  contentSections: FinalizationArguments["contentSections"];
+  composition: "article" | "transcript" | "both";
+} {
+  const normalizedArticle = normalizeForPrompt(articleContent);
+  const normalizedTranscript = normalizeTranscriptContent(transcriptText, transcriptSegments);
+  if (!normalizedTranscript) {
+    return { baseContent: normalizedArticle, contentSections: null, composition: "article" };
+  }
+
+  const shouldCombine =
+    normalizedArticle.length > 0 &&
+    (mode === "both" ||
+      (mode === "auto" && normalizedArticle.length >= EMBEDDED_VIDEO_ARTICLE_THRESHOLD));
+  if (!shouldCombine) {
+    return {
+      baseContent: `Transcript:\n${normalizedTranscript}`,
+      contentSections: null,
+      composition: "transcript",
+    };
+  }
+
+  const contentSections = [
+    { heading: "Article", content: normalizedArticle },
+    { heading: `Embedded video transcript (${videoUrl})`, content: normalizedTranscript },
+  ];
+  return {
+    baseContent: contentSections
+      .map((section) => `${section.heading}:\n${section.content}`)
+      .join("\n\n"),
+    contentSections,
+    composition: "both",
+  };
+}
+
 export function summarizeTranscript(transcriptText: string | null) {
   if (!transcriptText) {
     return { transcriptCharacters: null, transcriptLines: null, transcriptWordCount: null };
@@ -159,6 +222,7 @@ export function ensureTranscriptDiagnostics(
 export function finalizeExtractedLinkContent({
   url,
   baseContent,
+  contentSections,
   maxCharacters,
   title,
   description,
@@ -168,22 +232,28 @@ export function finalizeExtractedLinkContent({
   isVideoOnly,
   diagnostics,
 }: FinalizationArguments): ExtractedLinkContent {
-  const normalized = normalizeForPrompt(baseContent);
-  const { content, truncated, totalCharacters, wordCount } =
-    typeof maxCharacters === "number"
-      ? applyContentBudget(normalized, maxCharacters)
-      : {
-          content: normalized,
-          truncated: false,
-          totalCharacters: normalized.length,
-          wordCount:
-            normalized.length > 0
-              ? normalized
-                  .split(WORD_SPLIT_PATTERN)
-                  .map((value) => value.trim())
-                  .filter((value) => value.length > 0).length
-              : 0,
-        };
+  const normalizedSections = (contentSections ?? [])
+    .map((section) => ({
+      heading: normalizeForPrompt(section.heading),
+      content: normalizeForPrompt(section.content),
+    }))
+    .filter((section) => section.heading.length > 0 && section.content.length > 0);
+  const normalized =
+    normalizedSections.length > 0
+      ? normalizedSections.map((section) => `${section.heading}:\n${section.content}`).join("\n\n")
+      : normalizeForPrompt(baseContent);
+  const contentBudget =
+    typeof maxCharacters === "number" && normalizedSections.length > 1
+      ? applySectionContentBudget(normalizedSections, maxCharacters)
+      : typeof maxCharacters === "number"
+        ? applyContentBudget(normalized, maxCharacters)
+        : {
+            content: normalized,
+            truncated: false,
+            totalCharacters: normalized.length,
+            wordCount: countWords(normalized),
+          };
+  const { content, truncated, totalCharacters, wordCount } = contentBudget;
   const { transcriptCharacters, transcriptLines, transcriptWordCount } = summarizeTranscript(
     transcriptResolution.text,
   );
@@ -242,5 +312,59 @@ export function finalizeExtractedLinkContent({
     video,
     isVideoOnly,
     diagnostics,
+  };
+}
+
+function countWords(content: string): number {
+  return content.length > 0
+    ? content
+        .split(WORD_SPLIT_PATTERN)
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0).length
+    : 0;
+}
+
+function applySectionContentBudget(
+  sections: Array<{ heading: string; content: string }>,
+  maxCharacters: number,
+) {
+  const fullContent = sections
+    .map((section) => `${section.heading}:\n${section.content}`)
+    .join("\n\n");
+  if (fullContent.length <= maxCharacters || maxCharacters < 160) {
+    return applyContentBudget(fullContent, maxCharacters);
+  }
+
+  const framingCharacters = sections.reduce(
+    (sum, section, index) => sum + section.heading.length + 2 + (index > 0 ? 2 : 0),
+    0,
+  );
+  const available = Math.max(0, maxCharacters - framingCharacters);
+  const initialBudgets = sections.map((section, index) => {
+    const share = index === 0 ? 0.35 : 0.65 / Math.max(1, sections.length - 1);
+    return Math.min(section.content.length, Math.floor(available * share));
+  });
+  let unused = available - initialBudgets.reduce((sum, budget) => sum + Math.max(0, budget), 0);
+  for (let index = 0; index < sections.length && unused > 0; index += 1) {
+    const room = sections[index]!.content.length - initialBudgets[index]!;
+    const extra = Math.min(room, unused);
+    initialBudgets[index] = initialBudgets[index]! + extra;
+    unused -= extra;
+  }
+
+  const content = sections
+    .map((section, index) => {
+      const budget = Math.max(1, initialBudgets[index] ?? 1);
+      return `${section.heading}:\n${applyContentBudget(section.content, budget).content}`;
+    })
+    .join("\n\n");
+  const bounded =
+    content.length > maxCharacters ? applyContentBudget(content, maxCharacters) : null;
+  const finalContent = bounded?.content ?? content;
+  return {
+    content: finalContent,
+    truncated: true,
+    totalCharacters: fullContent.length,
+    wordCount: countWords(finalContent),
   };
 }

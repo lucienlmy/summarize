@@ -34,15 +34,15 @@ export async function transcribeBrowserMediaInTab({
   try {
     startBrowserMediaProgressRuntime();
     onStatus?.("Resolving browser media...");
-    const inspected = await getPrimaryMediaInfoInTab(tabId);
     const direct = isDirectMediaUrl(tabUrl);
-    const mediaUrl = direct ? tabUrl : inspected.ok ? inspected.mediaSrc : null;
+    const inspected = direct ? null : await getPrimaryMediaInfoInTab(tabId);
+    const mediaUrl = direct ? tabUrl : inspected?.ok ? inspected.mediaSrc : null;
     if (!mediaUrl || !isBrowserMediaUrl(mediaUrl)) {
       return {
         ok: false,
-        error: inspected.ok
+        error: inspected?.ok
           ? "The active media source is not fetchable outside the page."
-          : inspected.error,
+          : (inspected?.error ?? "The direct media URL is not fetchable."),
       };
     }
     await ensureOffscreenDocument();
@@ -85,7 +85,7 @@ export async function transcribeBrowserMediaInTab({
       return {
         ...response,
         durationSeconds:
-          inspected.ok && inspected.durationSeconds
+          inspected?.ok && inspected.durationSeconds
             ? inspected.durationSeconds
             : response.diagnostics.durationSeconds,
         source: direct ? "direct" : "embedded",

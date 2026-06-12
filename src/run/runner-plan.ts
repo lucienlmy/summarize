@@ -79,6 +79,7 @@ export async function createRunnerPlan(options: {
   const runStartedAtMs = Date.now();
   const {
     videoModeExplicitlySet,
+    embeddedVideoExplicitlySet,
     lengthExplicitlySet,
     languageExplicitlySet,
     noCacheFlag,
@@ -148,6 +149,7 @@ export async function createRunnerPlan(options: {
     outputLanguage,
     openaiWhisperUsdPerMinute,
     videoMode,
+    embeddedVideoMode,
     cliConfigForRun,
     configForCli,
     openaiUseChatCompletions,
@@ -189,6 +191,7 @@ export async function createRunnerPlan(options: {
     programOpts,
     languageExplicitlySet,
     videoModeExplicitlySet,
+    embeddedVideoExplicitlySet,
     cliFlagPresent,
     cliProviderArg,
   });
@@ -437,6 +440,7 @@ export async function createRunnerPlan(options: {
       youtubeMode,
       firecrawlMode: requestedFirecrawlMode,
       videoMode,
+      embeddedVideoMode,
       transcriptTimestamps,
       transcriptDiarization: diarizationMode,
       speakerIdentification,

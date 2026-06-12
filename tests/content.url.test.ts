@@ -61,6 +61,8 @@ describe("content/url", () => {
     expect(isDirectMediaUrl("https://example.com/track.wma#t=10")).toBe(true);
     expect(isDirectMediaUrl("https://example.com/playlist.m3u8")).toBe(true);
     expect(isDirectMediaUrl("https://example.com/article")).toBe(false);
+    expect(isDirectMediaUrl("https://example.com/article?next=audio.mp3")).toBe(false);
+    expect(isDirectMediaUrl("https://example.com/article#video.mp4")).toBe(false);
   });
 
   it("detects direct media extensions", () => {

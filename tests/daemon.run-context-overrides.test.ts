@@ -177,6 +177,7 @@ describe("daemon/flow-context (overrides)", () => {
         preprocessMode: "always",
         youtubeMode: "no-auto",
         videoMode: "transcript",
+        embeddedVideoMode: "both",
         transcriptTimestamps: null,
         transcriptDiarization: null,
         forceSummary: null,
@@ -196,6 +197,7 @@ describe("daemon/flow-context (overrides)", () => {
     expect(ctx.flags.preprocessMode).toBe("always");
     expect(ctx.flags.youtubeMode).toBe("no-auto");
     expect(ctx.flags.videoMode).toBe("transcript");
+    expect(ctx.flags.embeddedVideoMode).toBe("both");
     expect(ctx.flags.timeoutMs).toBe(45_000);
     expect(ctx.flags.retries).toBe(2);
     expect(ctx.flags.maxOutputTokensArg).toBe(512);
@@ -241,6 +243,7 @@ describe("daemon/flow-context (overrides)", () => {
         preprocessMode: null,
         youtubeMode: null,
         videoMode: null,
+        embeddedVideoMode: null,
         transcriptTimestamps: null,
         transcriptDiarization: "openai",
         forceSummary: null,
@@ -284,6 +287,7 @@ describe("daemon/flow-context (overrides)", () => {
         preprocessMode: null,
         youtubeMode: null,
         videoMode: null,
+        embeddedVideoMode: null,
         transcriptTimestamps: null,
         transcriptDiarization: "openai",
         forceSummary: null,

@@ -131,6 +131,7 @@ export function createUrlExtractionSession({
             options: {
               youtubeTranscript: options.youtubeTranscript,
               mediaTranscript: options.mediaTranscript,
+              embeddedVideo: options.embeddedVideo,
               firecrawl: options.firecrawl,
               format: options.format,
               markdownMode: options.markdownMode ?? null,

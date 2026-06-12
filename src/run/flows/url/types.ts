@@ -43,6 +43,7 @@ export type UrlFlowFlags = {
   youtubeMode: "auto" | "web" | "yt-dlp" | "apify" | "no-auto";
   firecrawlMode: "off" | "auto" | "always";
   videoMode: "auto" | "transcript" | "understand";
+  embeddedVideoMode: "auto" | "off" | "prefer" | "both";
   transcriptTimestamps: boolean;
   transcriptDiarization: "auto" | "elevenlabs" | "openai" | null;
   speakerIdentification: SpeakerIdentificationSettings | null;

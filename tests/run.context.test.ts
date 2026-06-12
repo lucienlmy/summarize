@@ -27,9 +27,10 @@ describe("run context state", () => {
     const state = resolveRunContextState({
       env,
       envForRun: env,
-      programOpts: { videoMode: "auto" },
+      programOpts: { videoMode: "auto", embeddedVideo: "auto" },
       languageExplicitlySet: false,
       videoModeExplicitlySet: false,
+      embeddedVideoExplicitlySet: false,
       cliFlagPresent: false,
       cliProviderArg: null,
     });

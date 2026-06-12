@@ -139,7 +139,7 @@ test("sidepanel extracts slides from local video via daemon", async ({
   const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "summarize-daemon-e2e-"));
   const abortController = new AbortController();
   let daemonPromise: Promise<void> | null = null;
-  const guardedServerUrl = serverUrl.replace("127.0.0.1", "203.0.113.1");
+  const guardedServerUrl = serverUrl.replace("127.0.0.1", "93.184.216.34");
   const localFixtureFetch: typeof fetch = async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (url.startsWith(guardedServerUrl)) {

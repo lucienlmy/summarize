@@ -81,6 +81,7 @@ type SummarizeToolArgs = {
   preprocess?: "off" | "auto" | "always";
   youtube?: "auto" | "web" | "yt-dlp" | "apify" | "no-auto";
   videoMode?: "auto" | "transcript" | "understand";
+  embeddedVideo?: "auto" | "off" | "prefer" | "both";
   timestamps?: boolean;
   maxCharacters?: number;
 };
@@ -144,6 +145,7 @@ async function executeSummarizeTool(args: SummarizeToolArgs): Promise<SummarizeT
   if (youtube) body.youtube = youtube;
 
   if (args.videoMode) body.videoMode = args.videoMode;
+  if (args.embeddedVideo) body.embeddedVideo = args.embeddedVideo;
   if (typeof args.timestamps === "boolean") body.timestamps = args.timestamps;
 
   if (typeof args.maxCharacters === "number" && Number.isFinite(args.maxCharacters)) {

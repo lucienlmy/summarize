@@ -8,6 +8,7 @@ export type PreprocessMode = "off" | "auto" | "always";
 export type StreamMode = "auto" | "on" | "off";
 export type MetricsMode = "off" | "on" | "detailed";
 export type VideoMode = "auto" | "transcript" | "understand";
+export type EmbeddedVideoMode = "auto" | "off" | "prefer" | "both";
 export type DiarizationMode = "auto" | "elevenlabs" | "openai";
 
 export type LengthArg =
@@ -85,6 +86,19 @@ export function parseVideoMode(raw: string): VideoMode {
     return normalized as VideoMode;
   }
   throw new Error(`Unsupported --video-mode: ${raw}`);
+}
+
+export function parseEmbeddedVideoMode(raw: string): EmbeddedVideoMode {
+  const normalized = raw.trim().toLowerCase();
+  if (
+    normalized === "auto" ||
+    normalized === "off" ||
+    normalized === "prefer" ||
+    normalized === "both"
+  ) {
+    return normalized;
+  }
+  throw new Error(`Unsupported --embedded-video: ${raw}`);
 }
 
 export function parseDiarizationMode(raw: string): DiarizationMode {

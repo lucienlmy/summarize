@@ -13,6 +13,7 @@ const baseFlags = {
   maxExtractCharacters: null,
   youtubeMode: "auto" as const,
   videoMode: "auto" as const,
+  embeddedVideoMode: "auto" as const,
   transcriptTimestamps: false,
   transcriptDiarization: null,
   firecrawlMode: "off" as const,
@@ -103,5 +104,27 @@ describe("url fetch options", () => {
 
     expect(diarizationOnly.options.transcriptVideoDownload).toBe(false);
     expect(slidesAndDiarization.options.transcriptVideoDownload).toBe(true);
+  });
+
+  it("maps transcript video mode to embedded transcript preference", () => {
+    const result = resolveUrlFetchOptions({
+      targetUrl: "https://example.com/article",
+      flags: { ...baseFlags, videoMode: "transcript" },
+      markdown,
+      cacheMode: "default",
+    });
+
+    expect(result.options.embeddedVideo).toBe("prefer");
+  });
+
+  it("preserves an explicit embedded video policy", () => {
+    const result = resolveUrlFetchOptions({
+      targetUrl: "https://example.com/article",
+      flags: { ...baseFlags, videoMode: "transcript", embeddedVideoMode: "both" },
+      markdown,
+      cacheMode: "default",
+    });
+
+    expect(result.options.embeddedVideo).toBe("both");
   });
 });

@@ -17,6 +17,8 @@ Use this for non-YouTube URLs.
 - If extraction looks blocked or too thin, it can retry via Firecrawl (Markdown).
   - Firecrawl applies to non-YouTube URLs only; YouTube URLs use the `--youtube` transcript path instead.
 - If a page is effectively “video-only”, it may treat it as a video input (see `--video-mode`).
+- A high-confidence primary YouTube embed is captioned automatically. Substantial pages combine labeled article and transcript sections; lightweight embed pages remain transcript-first.
+- `--embedded-video off|prefer|both` forces article-only, transcript-only, or combined handling. `auto` ignores ordinary YouTube links and ambiguous multiple embeds.
 - `--video-mode transcript` prefers embedded media transcripts on pages with audio/video (captions → yt-dlp/Whisper fallback).
 - With `--format md`, the CLI defaults to `--markdown-mode readability` (Readability article HTML as the Markdown input).
   - Use `--firecrawl always` to try Firecrawl first for non-YouTube URLs.
@@ -46,6 +48,7 @@ Daemon note:
 - `--markdown-mode off|auto|llm|readability` (default: `readability`; only affects `--format md` for non-YouTube URLs)
 - `--preprocess off|auto|always` (default: `auto`; controls markitdown usage; `always` only affects file inputs)
 - `--video-mode auto|transcript|understand` (only affects video inputs / video-only pages)
+- `--embedded-video auto|off|prefer|both` (default: `auto`; automatic mode uses captions only)
 - Plain-text mode: use `--format text`.
 - `--timeout 30s|30|2m|5000ms` (default: `2m`)
 - `--extract` (print extracted content; no summary LLM call)

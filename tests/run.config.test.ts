@@ -7,9 +7,10 @@ import { resolveConfigState } from "../src/run/run-config.js";
 function resolveTestConfigState(programOpts: Record<string, unknown>) {
   return resolveConfigState({
     envForRun: { HOME: mkdtempSync(join(tmpdir(), "summarize-run-config-")) },
-    programOpts: { videoMode: "auto", ...programOpts },
+    programOpts: { videoMode: "auto", embeddedVideo: "auto", ...programOpts },
     languageExplicitlySet: false,
     videoModeExplicitlySet: false,
+    embeddedVideoExplicitlySet: false,
     cliFlagPresent: false,
     cliProviderArg: null,
   });
@@ -24,9 +25,10 @@ function resolveTestConfigStateWithEnv(
       HOME: mkdtempSync(join(tmpdir(), "summarize-run-config-")),
       ...envForRun,
     },
-    programOpts: { videoMode: "auto", ...programOpts },
+    programOpts: { videoMode: "auto", embeddedVideo: "auto", ...programOpts },
     languageExplicitlySet: false,
     videoModeExplicitlySet: false,
+    embeddedVideoExplicitlySet: false,
     cliFlagPresent: false,
     cliProviderArg: null,
   });

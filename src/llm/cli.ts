@@ -29,7 +29,8 @@ const DEFAULT_BINARIES: Record<CliProvider, string> = {
 };
 
 const CLI_MAX_MESSAGE_ARG_BYTES = 120 * 1024;
-const CODEX_GPT_FAST_MODEL = "gpt-5.5";
+const CODEX_DEFAULT_MODEL = "gpt-5.5";
+const CODEX_GPT_FAST_MODEL = CODEX_DEFAULT_MODEL;
 const CODEX_GPT_FAST_ALIASES = new Set(["gpt-fast", "gpt-5.5-fast"]);
 
 const PROVIDER_PATH_ENV: Record<CliProvider, string> = {
@@ -120,6 +121,9 @@ function resolveCodexModelAndArgs(
   providerExtraArgs: string[],
 ): { model: string | null; extraArgs: string[] } {
   const normalized = requestedModel?.trim().toLowerCase() ?? "";
+  if (!normalized) {
+    return { model: CODEX_DEFAULT_MODEL, extraArgs: providerExtraArgs };
+  }
   if (!CODEX_GPT_FAST_ALIASES.has(normalized)) {
     return { model: requestedModel, extraArgs: providerExtraArgs };
   }

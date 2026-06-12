@@ -13,6 +13,8 @@ export function buildUrlJsonInput(options: {
     url,
     timeoutMs: flags.timeoutMs,
     youtube: flags.youtubeMode,
+    videoMode: flags.videoMode,
+    embeddedVideo: flags.embeddedVideoMode,
     firecrawl: flags.firecrawlMode,
     format: flags.format,
     markdown: effectiveMarkdownMode,

@@ -358,9 +358,14 @@ For auto selection with rules:
       }
     ]
   },
-  "media": { "videoMode": "auto" }
+  "media": {
+    "videoMode": "auto",
+    "embeddedVideo": "auto"
+  }
 }
 ```
+
+`media.embeddedVideo` accepts `"auto"`, `"off"`, `"prefer"`, or `"both"`. Automatic mode uses only high-confidence primary YouTube embeds and free captions, combining the transcript with substantial article text.
 
 Notes:
 
@@ -398,7 +403,7 @@ Examples:
       "onlyWhenNoApiKeys": true,
       "order": ["claude", "gemini", "codex", "agent", "openclaw", "opencode", "copilot"]
     },
-    "codex": { "model": "gpt-5.2" },
+    "codex": { "model": "gpt-5.5" },
     "claude": { "binary": "/usr/local/bin/claude", "extraArgs": ["--verbose"] },
     "agent": { "binary": "/usr/local/bin/agent", "model": "gpt-5.2" },
     "openclaw": { "binary": "/usr/local/bin/openclaw", "model": "main" },

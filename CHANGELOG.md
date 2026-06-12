@@ -1,10 +1,20 @@
 # Changelog
 
-## 0.17.4 - Unreleased
+## 0.18.0 - Unreleased
+
+### Features
+
+- Website media: detect a primary embedded YouTube video, use free captions automatically, and combine its transcript with substantial article text; add `--embedded-video auto|off|prefer|both`.
 
 ### Fixes
 
+- Chrome extension: transcribe direct MP3/MP4 URLs without probing page media, cancel summary and chat work when panel sessions close, and clear daemon retry timers after failed requests.
+- Codex CLI: pin bare and auto-fallback runs to GPT-5.5 instead of inheriting an older runtime default.
+- Direct media: classify audio and video URLs from the pathname only so media-looking query strings and fragments do not reroute normal pages.
+- Network fetches: keep body-consumption deadlines active alongside caller cancellation and preserve caller abort reasons instead of misreporting them as timeouts.
+- URL fetch guard: block IPv4 documentation ranges while allowing public addresses elsewhere in 192.0.0.0/8.
 - YouTube metadata: harden view-count freshness, fallbacks, embedded transcript cache identity, and timeout enforcement while reading response bodies.
+- Chrome extension: update Transformers.js to 4.2 and resolve its bundled ONNX runtime assets through the installed dependency graph.
 
 ### Docs
 

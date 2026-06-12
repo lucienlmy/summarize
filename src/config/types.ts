@@ -1,5 +1,6 @@
 export type AutoRuleKind = "text" | "website" | "youtube" | "image" | "video" | "file";
 export type VideoMode = "auto" | "transcript" | "understand";
+export type EmbeddedVideoMode = "auto" | "off" | "prefer" | "both";
 export type CliProvider =
   | "claude"
   | "codex"
@@ -281,6 +282,7 @@ export type SummarizeConfig = {
   models?: Record<string, ModelConfig>;
   media?: {
     videoMode?: VideoMode;
+    embeddedVideo?: EmbeddedVideoMode;
   };
   slides?: {
     enabled?: boolean;

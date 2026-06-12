@@ -7,6 +7,7 @@ export type SummarizeRequestOverrides = {
   preprocess?: "off" | "auto" | "always";
   youtube?: "auto" | "web" | "apify" | "yt-dlp" | "no-auto";
   videoMode?: "auto" | "transcript" | "understand";
+  embeddedVideo?: "auto" | "off" | "prefer" | "both";
   timestamps?: boolean;
   diarize?: string | boolean;
   forceSummary?: boolean;

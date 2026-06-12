@@ -121,6 +121,9 @@ export function createPanelSessionStore<
       return session;
     },
     deletePanelSession(windowId: number) {
+      const session = panelSessions.get(windowId);
+      session?.runController?.abort();
+      session?.agentController?.abort();
       panelSessions.delete(windowId);
       getPanelPortMap().delete(windowId);
     },

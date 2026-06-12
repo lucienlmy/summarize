@@ -12,6 +12,7 @@ export const DEFAULT_MAX_CONTENT_CHARACTERS = 8000;
 export const DEFAULT_CACHE_MODE: CacheMode = "default";
 export type YoutubeTranscriptMode = "auto" | "web" | "apify" | "yt-dlp" | "no-auto";
 export type MediaTranscriptMode = "auto" | "prefer";
+export type EmbeddedVideoMode = "auto" | "off" | "prefer" | "both";
 export type FirecrawlMode = "off" | "auto" | "always";
 export type ContentFormat = "text" | "markdown";
 export type MarkdownMode = "off" | "auto" | "llm" | "readability";
@@ -29,6 +30,7 @@ export interface FetchLinkContentOptions {
   cacheMode?: CacheMode;
   youtubeTranscript?: YoutubeTranscriptMode;
   mediaTranscript?: MediaTranscriptMode;
+  embeddedVideo?: EmbeddedVideoMode;
   transcriptTimestamps?: boolean;
   transcriptDiarization?: DiarizationPreference | null;
   transcriptVideoDownload?: boolean;
@@ -74,6 +76,7 @@ export interface ExtractedLinkContent {
 export interface FinalizationArguments {
   url: string;
   baseContent: string;
+  contentSections?: Array<{ heading: string; content: string }> | null;
   maxCharacters: number | null;
   title: string | null;
   description: string | null;

@@ -143,6 +143,7 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     envForRun.SUMMARIZE_TRANSCRIBER = resolvedOverrides.transcriber;
   }
   const videoModeOverride = resolvedOverrides.videoMode;
+  const embeddedVideoOverride = resolvedOverrides.embeddedVideoMode;
   const resolvedFormat = format === "markdown" ? "markdown" : "text";
 
   const {
@@ -151,6 +152,7 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     outputLanguage: outputLanguageFromConfig,
     openaiWhisperUsdPerMinute,
     videoMode,
+    embeddedVideoMode,
     cliConfigForRun,
     configForCli,
     openaiUseChatCompletions,
@@ -186,9 +188,13 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
   } = resolveRunContextState({
     env: envForRun,
     envForRun,
-    programOpts: { videoMode: videoModeOverride ?? "auto" },
+    programOpts: {
+      videoMode: videoModeOverride ?? "auto",
+      embeddedVideo: embeddedVideoOverride ?? "auto",
+    },
     languageExplicitlySet,
     videoModeExplicitlySet: videoModeOverride != null,
+    embeddedVideoExplicitlySet: embeddedVideoOverride != null,
     cliFlagPresent: false,
     cliProviderArg: null,
   });
@@ -399,6 +405,7 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
       youtubeMode,
       firecrawlMode,
       videoMode,
+      embeddedVideoMode,
       transcriptTimestamps: resolvedOverrides.transcriptTimestamps ?? false,
       transcriptDiarization: resolvedOverrides.transcriptDiarization ?? null,
       speakerIdentification: null,

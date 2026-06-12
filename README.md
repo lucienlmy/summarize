@@ -638,6 +638,7 @@ Also supported:
 - `output.length` (default `--length`: `short|medium|long|xl|xxl|20k`)
 - `cache.media` (media download cache: TTL 7 days, 2048 MB cap by default; `--no-media-cache` disables)
 - `media.videoMode: "auto"|"transcript"|"understand"`
+- `media.embeddedVideo: "auto"|"off"|"prefer"|"both"` (default `auto`: combine substantial articles with primary embedded YouTube captions)
 - `slides.enabled` / `slides.max` / `slides.ocr` / `slides.dir` (defaults for `--slides`)
 - `ui.theme: "aurora"|"ember"|"moss"|"mono"`
 - `openai.useChatCompletions: true` (force OpenAI-compatible chat completions)

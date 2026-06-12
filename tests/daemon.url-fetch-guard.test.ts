@@ -30,6 +30,9 @@ describe("daemon URL fetch guard", () => {
     expect(isBlockedNetworkAddress("172.16.0.1")).toBe(true);
     expect(isBlockedNetworkAddress("192.168.0.1")).toBe(true);
     expect(isBlockedNetworkAddress("169.254.169.254")).toBe(true);
+    expect(isBlockedNetworkAddress("198.51.100.1")).toBe(true);
+    expect(isBlockedNetworkAddress("203.0.113.1")).toBe(true);
+    expect(isBlockedNetworkAddress("192.0.8.1")).toBe(false);
     expect(isBlockedNetworkAddress("::1")).toBe(true);
     expect(isBlockedNetworkAddress("::ffff:127.0.0.1")).toBe(true);
     expect(isBlockedNetworkAddress("::7f00:1")).toBe(true);

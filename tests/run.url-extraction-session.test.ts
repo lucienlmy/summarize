@@ -49,6 +49,7 @@ function createCtx() {
       maxExtractCharacters: null,
       youtubeMode: "auto",
       videoMode: "auto",
+      embeddedVideoMode: "auto",
       transcriptTimestamps: false,
       transcriptDiarization: null,
       speakerIdentification: null,

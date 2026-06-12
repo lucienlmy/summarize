@@ -46,7 +46,7 @@ installed, auto mode can use local CLI models via `cli.enabled` or implicit auto
 
 - `--model <model>`
   - Examples:
-    - `cli/codex/gpt-5.2`
+    - `cli/codex/gpt-5.5`
     - `openai/gpt-5.5`
     - `codex-fast` (explicit Codex CLI GPT Fast preset)
     - `cli/claude/sonnet`

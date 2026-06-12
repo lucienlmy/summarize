@@ -19,11 +19,10 @@ async function withDaemonRetry(
   },
 ): Promise<{ ok: boolean; error?: string }> {
   for (let attempt = 0; attempt < DAEMON_STATUS_MAX_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DAEMON_STATUS_TIMEOUT_MS);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), DAEMON_STATUS_TIMEOUT_MS);
       const res = await run(controller.signal);
-      clearTimeout(timeout);
       if (!res.ok) return { ok: false, error: `${res.status} ${res.statusText}` };
       return { ok: true };
     } catch (err) {
@@ -40,6 +39,8 @@ async function withDaemonRetry(
         return { ok: false, error: labels.fetchFailed };
       }
       return { ok: false, error: message };
+    } finally {
+      clearTimeout(timeout);
     }
   }
   return { ok: false, error: labels.timeout };

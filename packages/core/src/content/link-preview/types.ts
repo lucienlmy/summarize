@@ -47,11 +47,23 @@ export interface MarkdownDiagnostics {
   notes?: string | null;
 }
 
+export interface EmbeddedVideoDiagnostics {
+  mode: "auto" | "off" | "prefer" | "both";
+  detected: boolean;
+  used: boolean;
+  url: string | null;
+  source: "iframe" | "open-graph" | "video-tag" | null;
+  confidence: "high" | "medium" | null;
+  composition: "article" | "transcript" | "both";
+  notes?: string | null;
+}
+
 export interface ContentFetchDiagnostics {
   strategy: "bird" | "xurl" | "firecrawl" | "html" | "nitter";
   firecrawl: FirecrawlDiagnostics;
   markdown: MarkdownDiagnostics;
   transcript: TranscriptDiagnostics;
+  embeddedVideo?: EmbeddedVideoDiagnostics;
 }
 
 export interface TranscriptResolution {

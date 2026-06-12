@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseDiarizationMode,
   parseDurationMs,
+  parseEmbeddedVideoMode,
   parseExtractFormat,
   parseFirecrawlMode,
   parseLengthArg,
@@ -109,6 +110,14 @@ describe("cli flag parsing", () => {
     expect(parseYoutubeMode("yt-dlp")).toBe("yt-dlp");
     expect(parseYoutubeMode("autp")).toBe("auto");
     expect(() => parseYoutubeMode("nope")).toThrow(/Unsupported --youtube/);
+  });
+
+  it("parses --embedded-video", () => {
+    expect(parseEmbeddedVideoMode("auto")).toBe("auto");
+    expect(parseEmbeddedVideoMode("off")).toBe("off");
+    expect(parseEmbeddedVideoMode("prefer")).toBe("prefer");
+    expect(parseEmbeddedVideoMode("both")).toBe("both");
+    expect(() => parseEmbeddedVideoMode("nope")).toThrow(/Unsupported --embedded-video/);
   });
 
   it("parses --timeout durations", () => {

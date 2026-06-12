@@ -34,10 +34,6 @@ export const DIRECT_MEDIA_EXTENSIONS = [
 const DIRECT_VIDEO_EXTENSION_SET = new Set<string>(DIRECT_VIDEO_EXTENSIONS);
 const DIRECT_AUDIO_EXTENSION_SET = new Set<string>(DIRECT_AUDIO_EXTENSIONS);
 const DIRECT_MEDIA_EXTENSION_SET = new Set<string>(DIRECT_MEDIA_EXTENSIONS);
-const DIRECT_MEDIA_URL_PATTERN = new RegExp(
-  `\\.(${DIRECT_MEDIA_EXTENSIONS.join("|")})(\\?|#|$)`,
-  "i",
-);
 
 const DIRECT_MEDIA_TYPE_BY_EXTENSION = new Map<string, string>([
   ["mp4", "video/mp4"],
@@ -77,7 +73,8 @@ export function resolveDirectMediaExtension(value: string): string | null {
 }
 
 export function isDirectMediaUrl(url: string): boolean {
-  return DIRECT_MEDIA_URL_PATTERN.test(url);
+  const ext = resolveDirectMediaExtension(url);
+  return ext ? DIRECT_MEDIA_EXTENSION_SET.has(ext) : false;
 }
 
 export function isDirectMediaExtension(ext: string): boolean {

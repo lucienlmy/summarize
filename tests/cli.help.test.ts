@@ -28,6 +28,7 @@ describe("--help output", () => {
     const out = stdout.getText();
     expect(out).toContain("Examples");
     expect(out).toContain('summarize "https://example.com"');
+    expect(out).toContain("--embedded-video <mode>");
     expect(out).not.toContain("\u001b[");
   });
 

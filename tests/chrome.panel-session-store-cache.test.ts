@@ -2,6 +2,29 @@ import { describe, expect, it, vi } from "vitest";
 import { createPanelSessionStore } from "../apps/chrome-extension/src/entrypoints/background/panel-session-store.js";
 
 describe("panel session persistent cache bridge", () => {
+  it("aborts summary and chat work when deleting a panel session", () => {
+    const runController = new AbortController();
+    const agentController = new AbortController();
+    const store = createPanelSessionStore<
+      { url: string },
+      { tabId: number; url: string },
+      Record<string, never>,
+      Record<string, never>
+    >({
+      createDaemonRecovery: () => ({}),
+      createDaemonStatus: () => ({}),
+    });
+    const session = store.registerPanelSession(1, {} as chrome.runtime.Port);
+    session.runController = runController;
+    session.agentController = agentController;
+
+    store.deletePanelSession(1);
+
+    expect(runController.signal.aborted).toBe(true);
+    expect(agentController.signal.aborted).toBe(true);
+    expect(store.getPanelSession(1)).toBeNull();
+  });
+
   it("hydrates panel cache from the persistent backend", async () => {
     const cached = { tabId: 99, url: "https://example.com", value: "cached" };
     const persistent = {

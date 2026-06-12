@@ -1,6 +1,6 @@
 import type { CliProvider, SummarizeConfig } from "../config.js";
 import { loadSummarizeConfig } from "../config.js";
-import { parseVideoMode } from "../flags.js";
+import { parseEmbeddedVideoMode, parseVideoMode } from "../flags.js";
 import { type OutputLanguage, parseOutputLanguage } from "../language.js";
 import { parseOpenAiReasoningEffort, parseOpenAiServiceTier } from "../llm/model-options.js";
 import type { ModelRequestOptions, OpenAiReasoningEffort } from "../llm/model-options.js";
@@ -12,6 +12,7 @@ export type ConfigState = {
   outputLanguage: OutputLanguage;
   openaiWhisperUsdPerMinute: number;
   videoMode: ReturnType<typeof parseVideoMode>;
+  embeddedVideoMode: ReturnType<typeof parseEmbeddedVideoMode>;
   cliConfigForRun: SummarizeConfig["cli"] | undefined;
   configForCli: SummarizeConfig | null;
   openaiUseChatCompletions: boolean | undefined;
@@ -26,6 +27,7 @@ export function resolveConfigState({
   programOpts,
   languageExplicitlySet,
   videoModeExplicitlySet,
+  embeddedVideoExplicitlySet,
   cliFlagPresent,
   cliProviderArg,
 }: {
@@ -33,6 +35,7 @@ export function resolveConfigState({
   programOpts: Record<string, unknown>;
   languageExplicitlySet: boolean;
   videoModeExplicitlySet: boolean;
+  embeddedVideoExplicitlySet: boolean;
   cliFlagPresent: boolean;
   cliProviderArg: CliProvider | null;
 }): ConfigState {
@@ -57,6 +60,11 @@ export function resolveConfigState({
     videoModeExplicitlySet
       ? (programOpts.videoMode as string)
       : (config?.media?.videoMode ?? (programOpts.videoMode as string)),
+  );
+  const embeddedVideoMode = parseEmbeddedVideoMode(
+    embeddedVideoExplicitlySet
+      ? String(programOpts.embeddedVideo ?? "auto")
+      : (config?.media?.embeddedVideo ?? String(programOpts.embeddedVideo ?? "auto")),
   );
 
   const cliEnabledOverride: CliProvider[] | null = (() => {
@@ -135,6 +143,7 @@ export function resolveConfigState({
     outputLanguage,
     openaiWhisperUsdPerMinute,
     videoMode,
+    embeddedVideoMode,
     cliConfigForRun,
     configForCli,
     openaiUseChatCompletions,

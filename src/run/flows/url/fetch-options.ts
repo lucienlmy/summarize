@@ -7,6 +7,7 @@ type UrlFetchFlags = {
   maxExtractCharacters?: number | null;
   youtubeMode: "auto" | "web" | "apify" | "yt-dlp" | "no-auto";
   videoMode: "auto" | "transcript" | "understand";
+  embeddedVideoMode: "auto" | "off" | "prefer" | "both";
   transcriptTimestamps: boolean;
   transcriptDiarization: "auto" | "elevenlabs" | "openai" | null;
   firecrawlMode: "off" | "auto" | "always";
@@ -57,6 +58,10 @@ export function resolveUrlFetchOptions({
     })
       ? "prefer"
       : "auto",
+    embeddedVideo:
+      flags.videoMode === "transcript" && flags.embeddedVideoMode === "auto"
+        ? "prefer"
+        : flags.embeddedVideoMode,
     transcriptTimestamps: flags.transcriptTimestamps,
     transcriptDiarization: flags.transcriptDiarization,
     transcriptVideoDownload: Boolean(flags.slides && flags.transcriptDiarization),

@@ -239,6 +239,11 @@ const TOOL_DEFINITIONS: Record<string, Tool> = {
           enum: ["auto", "transcript", "understand"],
           description: "Video mode",
         },
+        embeddedVideo: {
+          type: "string",
+          enum: ["auto", "off", "prefer", "both"],
+          description: "Embedded YouTube handling",
+        },
         timestamps: { type: "boolean", description: "Include transcript timestamps" },
         forceSummary: {
           type: "boolean",

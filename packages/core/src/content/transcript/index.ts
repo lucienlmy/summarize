@@ -1,3 +1,4 @@
+import { detectPrimaryVideoDetailsFromHtml } from "../link-preview/content/video.js";
 import type { LinkPreviewDeps } from "../link-preview/deps.js";
 import type {
   CacheMode,
@@ -30,7 +31,6 @@ import type {
   ProviderResult,
 } from "./types.js";
 import {
-  extractEmbeddedYouTubeUrlFromHtml,
   extractYouTubeVideoId as extractYouTubeVideoIdInternal,
   isYouTubeUrl as isYouTubeUrlInternal,
 } from "./utils.js";
@@ -45,6 +45,7 @@ interface ResolveTranscriptOptions {
   transcriptVideoDownload?: ProviderFetchOptions["transcriptVideoDownload"];
   cacheMode?: CacheMode;
   fileMtime?: number | null;
+  embeddedMediaUrl?: string | null;
 }
 
 const PROVIDERS: ProviderModule[] = [
@@ -68,12 +69,19 @@ export const resolveTranscriptForLink = async (
     transcriptVideoDownload,
     cacheMode: providedCacheMode,
     fileMtime,
+    embeddedMediaUrl,
   }: ResolveTranscriptOptions = {},
 ): Promise<TranscriptResolution> => {
   const normalizedUrl = url.trim();
+  const detectedEmbeddedMediaUrl =
+    typeof embeddedMediaUrl === "undefined" && html
+      ? detectPrimaryVideoDetailsFromHtml(html, normalizedUrl)?.video.url
+      : embeddedMediaUrl;
   const embeddedYoutubeUrl =
-    !isYouTubeUrlInternal(normalizedUrl) && html
-      ? await extractEmbeddedYouTubeUrlFromHtml(html)
+    !isYouTubeUrlInternal(normalizedUrl) &&
+    typeof detectedEmbeddedMediaUrl === "string" &&
+    isYouTubeUrlInternal(detectedEmbeddedMediaUrl)
+      ? detectedEmbeddedMediaUrl.trim()
       : null;
   const effectiveUrl = embeddedYoutubeUrl ?? normalizedUrl;
   const resourceKey = extractResourceKey(effectiveUrl);
@@ -134,6 +142,37 @@ export const resolveTranscriptForLink = async (
       diagnostics.notes,
       "Cached transcript ignored because the embedded YouTube video changed or could not be verified",
     );
+  }
+  if (embeddedYoutubeUrl && (!cacheOutcome.resolution || embeddedVideoIdentityMismatch)) {
+    const embeddedCacheOutcome = await readTranscriptCache({
+      url: embeddedYoutubeUrl,
+      cacheMode,
+      transcriptCache: deps.transcriptCache,
+      transcriptTimestamps: Boolean(transcriptTimestamps),
+      transcriptDiarization: transcriptDiarization ?? null,
+    });
+    const embeddedCachedMetrics = embeddedCacheOutcome.cached?.metadata?.sourceMetrics;
+    const embeddedCachedVideoId =
+      embeddedCachedMetrics &&
+      typeof embeddedCachedMetrics === "object" &&
+      !Array.isArray(embeddedCachedMetrics) &&
+      typeof (embeddedCachedMetrics as Record<string, unknown>).videoId === "string"
+        ? String((embeddedCachedMetrics as Record<string, unknown>).videoId)
+        : null;
+    const embeddedCachedIdentity =
+      embeddedCacheOutcome.cached?.resourceKey ?? embeddedCachedVideoId;
+    if (embeddedCacheOutcome.resolution && resourceKey && embeddedCachedIdentity === resourceKey) {
+      return {
+        ...embeddedCacheOutcome.resolution,
+        diagnostics: {
+          ...embeddedCacheOutcome.diagnostics,
+          notes: appendNote(
+            embeddedCacheOutcome.diagnostics.notes,
+            "Reused transcript cached by canonical embedded YouTube URL",
+          ),
+        },
+      };
+    }
   }
 
   const shouldReportProgress = provider.id === "youtube" || provider.id === "podcast";
@@ -225,6 +264,15 @@ export const resolveTranscriptForLink = async (
       transcriptCache: deps.transcriptCache,
       fileMtime,
     });
+    if (embeddedYoutubeUrl) {
+      await writeTranscriptCache({
+        url: embeddedYoutubeUrl,
+        service: provider.id,
+        resourceKey,
+        result: providerResult,
+        transcriptCache: deps.transcriptCache,
+      });
+    }
   }
 
   if (

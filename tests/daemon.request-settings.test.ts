@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { resolveRunOverrides } from "../src/run/run-settings.js";
 
 describe("run/run-settings overrides", () => {
+  it("parses embedded video policy overrides", () => {
+    expect(resolveRunOverrides({ embeddedVideo: "both" }).embeddedVideoMode).toBe("both");
+    expect(resolveRunOverrides({ embeddedVideo: "nope" }).embeddedVideoMode).toBeNull();
+    expect(() => resolveRunOverrides({ embeddedVideo: "nope" }, { strict: true })).toThrow(
+      /Unsupported --embedded-video/,
+    );
+  });
+
   it("parses mode overrides when valid", () => {
     const overrides = resolveRunOverrides({
       firecrawl: "always",

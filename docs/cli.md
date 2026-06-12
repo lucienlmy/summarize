@@ -13,7 +13,7 @@ Summarize can use installed CLIs (Claude, Codex, Gemini, Cursor Agent, OpenClaw,
 ## Model ids
 
 - `cli/claude/<model>` (e.g. `cli/claude/sonnet`)
-- `cli/codex/<model>` (e.g. `cli/codex/gpt-5.2`)
+- `cli/codex/<model>` (e.g. `cli/codex/gpt-5.5`)
 - `cli/gemini/<model>` (e.g. `cli/gemini/flash`)
 - `cli/agent/<model>` (e.g. `cli/agent/auto`)
 - `cli/openclaw/<model>` (e.g. `cli/openclaw/main`)
@@ -27,6 +27,7 @@ Summarize can use installed CLIs (Claude, Codex, Gemini, Cursor Agent, OpenClaw,
 - `cli/pi` (use pi's configured default model)
 
 Use `--cli [provider]` (case-insensitive) for the provider default, or `--model cli/<provider>/<model>` to pin a model.
+Bare `cli/codex` defaults to GPT-5.5; set `cli.codex.model` to override it.
 Antigravity does not support per-call model selection in print mode, so use `cli/agy` without a model suffix. pi supports `cli/pi/<model>` or a configured `cli.pi.model`.
 If `--cli` is provided without a provider, auto selection is used with CLI enabled.
 
@@ -129,7 +130,7 @@ path-based prompt and enables the required tool flags:
       "onlyWhenNoApiKeys": true,
       "order": ["claude", "gemini", "codex", "agent", "openclaw", "opencode", "copilot"]
     },
-    "codex": { "model": "gpt-5.2" },
+    "codex": { "model": "gpt-5.5" },
     "gemini": { "model": "flash", "extraArgs": ["--verbose"] },
     "claude": {
       "model": "sonnet",

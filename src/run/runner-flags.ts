@@ -17,6 +17,7 @@ type Transcriber = "auto" | "whisper" | "parakeet" | "canary";
 
 export type RunnerFlagResolution = {
   videoModeExplicitlySet: boolean;
+  embeddedVideoExplicitlySet: boolean;
   lengthExplicitlySet: boolean;
   languageExplicitlySet: boolean;
   noCacheFlag: boolean;
@@ -82,6 +83,7 @@ export function resolveRunnerFlags({
   url: string | null;
 }): RunnerFlagResolution {
   const videoModeExplicitlySet = hasFlag(normalizedArgv, "--video-mode");
+  const embeddedVideoExplicitlySet = hasFlag(normalizedArgv, "--embedded-video");
   const lengthExplicitlySet = hasFlag(normalizedArgv, "--length");
   const languageExplicitlySet = hasFlag(normalizedArgv, "--language", "--lang");
   const noCacheFlag = programOpts.cache === false;
@@ -168,6 +170,7 @@ export function resolveRunnerFlags({
 
   return {
     videoModeExplicitlySet,
+    embeddedVideoExplicitlySet,
     lengthExplicitlySet,
     languageExplicitlySet,
     noCacheFlag,

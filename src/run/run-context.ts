@@ -8,6 +8,7 @@ export function resolveRunContextState({
   programOpts,
   languageExplicitlySet,
   videoModeExplicitlySet,
+  embeddedVideoExplicitlySet,
   cliFlagPresent,
   cliProviderArg,
 }: {
@@ -16,6 +17,7 @@ export function resolveRunContextState({
   programOpts: Record<string, unknown>;
   languageExplicitlySet: boolean;
   videoModeExplicitlySet: boolean;
+  embeddedVideoExplicitlySet: boolean;
   cliFlagPresent: boolean;
   cliProviderArg: CliProvider | null;
 }) {
@@ -24,6 +26,7 @@ export function resolveRunContextState({
     programOpts,
     languageExplicitlySet,
     videoModeExplicitlySet,
+    embeddedVideoExplicitlySet,
     cliFlagPresent,
     cliProviderArg,
   });

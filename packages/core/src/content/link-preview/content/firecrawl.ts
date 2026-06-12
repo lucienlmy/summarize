@@ -21,8 +21,9 @@ import {
   pickFirstText,
   safeHostname,
   selectBaseContent,
+  selectEmbeddedVideoContent,
 } from "./utils.js";
-import { detectPrimaryVideoFromHtml } from "./video.js";
+import { detectPrimaryVideoDetailsFromHtml, resolveEmbeddedYoutubeDecision } from "./video.js";
 import { refreshYoutubeSourceMetrics } from "./youtube-source-metrics.js";
 
 export function shouldFallbackToFirecrawl(html: string): boolean {
@@ -46,6 +47,7 @@ export async function buildResultFromFirecrawl({
   maxCharacters,
   youtubeTranscriptMode,
   mediaTranscriptMode,
+  embeddedVideoMode,
   transcriptTimestamps,
   transcriptDiarization,
   transcriptVideoDownload,
@@ -60,6 +62,7 @@ export async function buildResultFromFirecrawl({
   maxCharacters: number | null;
   youtubeTranscriptMode: FetchLinkContentOptions["youtubeTranscript"];
   mediaTranscriptMode: FetchLinkContentOptions["mediaTranscript"];
+  embeddedVideoMode: FetchLinkContentOptions["embeddedVideo"];
   transcriptTimestamps?: FetchLinkContentOptions["transcriptTimestamps"];
   transcriptDiarization?: FetchLinkContentOptions["transcriptDiarization"];
   transcriptVideoDownload?: FetchLinkContentOptions["transcriptVideoDownload"];
@@ -81,16 +84,26 @@ export async function buildResultFromFirecrawl({
   const jsonLd = payload.html ? extractJsonLdContent(payload.html) : null;
   const isPodcastJsonLd = isPodcastLikeJsonLdType(jsonLd?.type);
 
+  const videoDetection = payload.html ? detectPrimaryVideoDetailsFromHtml(payload.html, url) : null;
+  const video = videoDetection?.video ?? null;
+  const resolvedEmbeddedVideoMode = embeddedVideoMode ?? "auto";
+  const embeddedYoutube = resolveEmbeddedYoutubeDecision({
+    pageUrl: url,
+    detection: videoDetection,
+    mode: resolvedEmbeddedVideoMode,
+    youtubeTranscriptMode: youtubeTranscriptMode ?? "auto",
+    mediaTranscriptMode: mediaTranscriptMode ?? "auto",
+  });
   const transcriptResolution = await resolveTranscriptForLink(url, payload.html ?? null, deps, {
     timeoutMs,
-    youtubeTranscriptMode,
-    mediaTranscriptMode,
+    youtubeTranscriptMode: embeddedYoutube.youtubeTranscriptMode,
+    mediaTranscriptMode: embeddedYoutube.mediaTranscriptMode,
     transcriptTimestamps,
     transcriptDiarization,
     transcriptVideoDownload,
     cacheMode,
+    embeddedMediaUrl: embeddedYoutube.shouldUse ? embeddedYoutube.detection?.video.url : null,
   });
-  const video = payload.html ? detectPrimaryVideoFromHtml(payload.html, url) : null;
   if (payload.html) {
     await refreshYoutubeSourceMetrics({
       url,
@@ -123,11 +136,19 @@ export async function buildResultFromFirecrawl({
       normalizedMarkdown.length < MIN_HTML_CONTENT_CHARACTERS ||
       descriptionCandidate.length >= normalizedMarkdown.length * READABILITY_RELATIVE_THRESHOLD);
   const baseCandidate = preferDescription ? descriptionCandidate : normalizedMarkdown;
-  const baseContent = selectBaseContent(
-    baseCandidate,
-    transcriptResolution.text,
-    transcriptResolution.segments,
-  );
+  const embeddedSelection =
+    embeddedYoutube.shouldUse && embeddedYoutube.detection
+      ? selectEmbeddedVideoContent({
+          articleContent: baseCandidate,
+          transcriptText: transcriptResolution.text,
+          transcriptSegments: transcriptResolution.segments,
+          mode: resolvedEmbeddedVideoMode,
+          videoUrl: embeddedYoutube.detection.video.url,
+        })
+      : null;
+  const baseContent =
+    embeddedSelection?.baseContent ??
+    selectBaseContent(baseCandidate, transcriptResolution.text, transcriptResolution.segments);
   if (baseContent.length === 0) {
     firecrawlDiagnostics.notes = appendNote(
       firecrawlDiagnostics.notes,
@@ -151,6 +172,7 @@ export async function buildResultFromFirecrawl({
   return finalizeExtractedLinkContent({
     url,
     baseContent,
+    contentSections: embeddedSelection?.contentSections ?? null,
     maxCharacters,
     title,
     description,
@@ -167,6 +189,16 @@ export async function buildResultFromFirecrawl({
         provider: "firecrawl",
       },
       transcript: transcriptDiagnostics,
+      embeddedVideo: {
+        mode: resolvedEmbeddedVideoMode,
+        detected: embeddedYoutube.detection !== null,
+        used: Boolean(embeddedYoutube.shouldUse && transcriptResolution.text),
+        url: embeddedYoutube.detection?.video.url ?? null,
+        source: embeddedYoutube.detection?.source ?? null,
+        confidence: embeddedYoutube.detection?.confidence ?? null,
+        composition: embeddedSelection?.composition ?? "article",
+        notes: embeddedYoutube.notes,
+      },
     },
   });
 }
