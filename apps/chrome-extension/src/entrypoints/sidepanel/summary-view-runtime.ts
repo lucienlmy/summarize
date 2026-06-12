@@ -36,11 +36,11 @@ type SummaryViewRuntimeOpts = {
   renderSlidesHostEl: HTMLElement;
   renderMarkdownHostEl: HTMLElement;
   summaryCopyBtn: HTMLButtonElement;
-  getSlidesRenderer: () => { clear: () => void };
+  slidesRenderer: { clear: () => void };
   metricsController: MetricsControllerLike;
   headerController: HeaderControllerLike;
   slidesTextController: SlidesTextControllerLike;
-  getSlidesHydrator: () => SlidesHydratorLike;
+  slidesHydrator: SlidesHydratorLike;
   stopSlidesStream: () => void;
   refreshSummarizeControl: () => void;
   resetChatState: () => void;
@@ -101,7 +101,7 @@ export function createSummaryViewRuntime(opts: SummaryViewRuntimeOpts) {
       },
     });
     if (stopSlides) {
-      opts.getSlidesRenderer().clear();
+      opts.slidesRenderer.clear();
       opts.setSlidesTranscriptTimedText(null);
       opts.slidesTextController.reset();
       opts.stopSlidesStream();
@@ -206,7 +206,7 @@ export function createSummaryViewRuntime(opts: SummaryViewRuntimeOpts) {
         opts.requestSlidesCapture();
       }
     }
-    opts.getSlidesHydrator().syncFromCache({
+    opts.slidesHydrator.syncFromCache({
       runId: opts.panelState.slidesRunId ?? null,
       summaryFromCache: payload.summaryFromCache,
       hasSlides: hasNormalizedSlides,
