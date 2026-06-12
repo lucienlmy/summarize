@@ -12,6 +12,7 @@ import type { ModelAttempt } from "../../../engine/types.js";
 import { formatOutputLanguageForJson } from "../../../language.js";
 import type { Prompt } from "../../../llm/prompt.js";
 import { SUMMARY_LENGTH_TARGET_CHARACTERS, SUMMARY_SYSTEM_PROMPT } from "../../../prompts/index.js";
+import { buildRunJsonEnv } from "../../../shared/run-api-status.js";
 import { countTokens } from "../../../tokenizer.js";
 import { isUnsupportedAttachmentError } from "../../attachments.js";
 import {
@@ -100,15 +101,7 @@ async function outputBypassedAssetSummary({
           };
     const payload = {
       input,
-      env: {
-        hasXaiKey: Boolean(ctx.apiStatus.xaiApiKey),
-        hasOpenAIKey: Boolean(ctx.apiStatus.apiKey),
-        hasOpenRouterKey: Boolean(ctx.apiStatus.openrouterApiKey),
-        hasApifyToken: Boolean(ctx.apiStatus.apifyToken),
-        hasFirecrawlKey: ctx.apiStatus.firecrawlConfigured,
-        hasGoogleKey: ctx.apiStatus.googleConfigured,
-        hasAnthropicKey: ctx.apiStatus.anthropicConfigured,
-      },
+      env: buildRunJsonEnv(ctx.apiStatus),
       extracted,
       prompt: promptText,
       llm: null,
@@ -412,15 +405,7 @@ export async function summarizeAsset(ctx: AssetSummaryContext, args: SummarizeAs
           };
     const payload = {
       input,
-      env: {
-        hasXaiKey: Boolean(ctx.apiStatus.xaiApiKey),
-        hasOpenAIKey: Boolean(ctx.apiStatus.apiKey),
-        hasOpenRouterKey: Boolean(ctx.apiStatus.openrouterApiKey),
-        hasApifyToken: Boolean(ctx.apiStatus.apifyToken),
-        hasFirecrawlKey: ctx.apiStatus.firecrawlConfigured,
-        hasGoogleKey: ctx.apiStatus.googleConfigured,
-        hasAnthropicKey: ctx.apiStatus.anthropicConfigured,
-      },
+      env: buildRunJsonEnv(ctx.apiStatus),
       extracted,
       prompt: promptText,
       llm: {

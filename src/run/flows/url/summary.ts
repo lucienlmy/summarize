@@ -8,6 +8,7 @@ import { render as renderMarkdownAnsi } from "markdansi";
 import type { ExtractedLinkContent } from "../../../content/index.js";
 import type { RunMetricsReport } from "../../../costs.js";
 import { resolveUrlSummaryExecution } from "../../../engine/web-summary.js";
+import { buildRunJsonEnv } from "../../../shared/run-api-status.js";
 import {
   readLastSuccessfulCliProvider,
   writeLastSuccessfulCliProvider,
@@ -24,7 +25,7 @@ import {
   buildModelMetaFromAttempt,
   pickModelForFinishLine,
 } from "./summary-finish.js";
-import { buildUrlJsonEnv, buildUrlJsonInput } from "./summary-json.js";
+import { buildUrlJsonInput } from "./summary-json.js";
 import type { UrlFlowContext } from "./types.js";
 
 type SlidesResult = Awaited<
@@ -67,7 +68,7 @@ async function writeUrlJsonOutput({
         modelLabel: model.requestedModelLabel,
       }),
     },
-    env: buildUrlJsonEnv(model.apiStatus),
+    env: buildRunJsonEnv(model.apiStatus),
     extracted,
     slides,
     prompt,

@@ -8,6 +8,7 @@ import type { createModelExecutor } from "../../../engine/model-executor.js";
 import type { OutputLanguage } from "../../../language.js";
 import type { ExecFileFn } from "../../../markitdown.js";
 import type { FixedModelSpec, RequestedModel } from "../../../model-spec.js";
+import type { RunApiStatus } from "../../../shared/run-api-status.js";
 import type { SpeakerIdentificationSettings } from "../../../speaker-identification/index.js";
 import type { AssetAttachment } from "../../attachments.js";
 
@@ -70,35 +71,7 @@ export type AssetSummaryContext = {
   cache: CacheState;
   summaryCacheBypass: boolean;
   mediaCache: MediaCache | null;
-  apiStatus: {
-    xaiApiKey: string | null;
-    apiKey: string | null;
-    nvidiaApiKey: string | null;
-    minimaxApiKey: string | null;
-    openrouterApiKey: string | null;
-    apifyToken: string | null;
-    firecrawlConfigured: boolean;
-    googleConfigured: boolean;
-    anthropicConfigured: boolean;
-    providerBaseUrls: {
-      openai: string | null;
-      nvidia: string | null;
-      anthropic: string | null;
-      google: string | null;
-      xai: string | null;
-    };
-    zaiApiKey: string | null;
-    zaiBaseUrl: string;
-    nvidiaBaseUrl: string;
-    minimaxBaseUrl: string;
-    ollamaBaseUrl: string;
-    falApiKey: string | null;
-    groqApiKey: string | null;
-    assemblyaiApiKey: string | null;
-    elevenlabsApiKey: string | null;
-    googleApiKey: string | null;
-    openaiApiKey: string | null;
-  };
+  apiStatus: RunApiStatus;
 };
 
 export type AssetSummaryContextInput = {

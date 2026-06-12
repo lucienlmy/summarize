@@ -28,23 +28,3 @@ export function buildUrlJsonInput(options: {
     language: formatOutputLanguageForJson(flags.outputLanguage),
   };
 }
-
-export function buildUrlJsonEnv(apiStatus: {
-  xaiApiKey: string | null;
-  apiKey: string | null;
-  openrouterApiKey: string | null;
-  apifyToken: string | null;
-  firecrawlConfigured: boolean;
-  googleConfigured: boolean;
-  anthropicConfigured: boolean;
-}) {
-  return {
-    hasXaiKey: Boolean(apiStatus.xaiApiKey),
-    hasOpenAIKey: Boolean(apiStatus.apiKey),
-    hasOpenRouterKey: Boolean(apiStatus.openrouterApiKey),
-    hasApifyToken: Boolean(apiStatus.apifyToken),
-    hasFirecrawlKey: apiStatus.firecrawlConfigured,
-    hasGoogleKey: apiStatus.googleConfigured,
-    hasAnthropicKey: apiStatus.anthropicConfigured,
-  };
-}

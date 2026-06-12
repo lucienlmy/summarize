@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildUrlJsonEnv, buildUrlJsonInput } from "../src/run/flows/url/summary-json.js";
+import { buildUrlJsonInput } from "../src/run/flows/url/summary-json.js";
+import { buildRunJsonEnv } from "../src/shared/run-api-status.js";
 
 describe("run url summary json", () => {
   it("builds preset-length input payloads", () => {
@@ -55,7 +56,7 @@ describe("run url summary json", () => {
     expect(input.language).toEqual({ mode: "auto" });
 
     expect(
-      buildUrlJsonEnv({
+      buildRunJsonEnv({
         xaiApiKey: "x",
         apiKey: null,
         openrouterApiKey: "or",

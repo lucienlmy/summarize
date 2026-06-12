@@ -15,6 +15,7 @@ import type { Prompt } from "../llm/prompt.js";
 import { buildAutoModelAttempts } from "../model-auto.js";
 import type { FixedModelSpec } from "../model-spec.js";
 import { SUMMARY_SYSTEM_PROMPT } from "../prompts/index.js";
+import type { RunApiStatus } from "../shared/run-api-status.js";
 import type { SummaryLengthArg } from "../shared/summary-length.js";
 import { countTokens } from "../tokenizer.js";
 import { parseCliUserModelId } from "./cli-model-id.js";
@@ -63,15 +64,16 @@ export type WebSummaryContext = {
     configForModelSelection: SummarizeConfig | null;
     envForAuto: Record<string, string | undefined>;
     cliAvailability: Partial<Record<CliProvider, boolean>>;
-    apiStatus: {
-      zaiApiKey: string | null;
-      zaiBaseUrl: string;
-      nvidiaApiKey: string | null;
-      nvidiaBaseUrl: string;
-      minimaxApiKey: string | null;
-      minimaxBaseUrl: string;
-      ollamaBaseUrl: string;
-    };
+    apiStatus: Pick<
+      RunApiStatus,
+      | "zaiApiKey"
+      | "zaiBaseUrl"
+      | "nvidiaApiKey"
+      | "nvidiaBaseUrl"
+      | "minimaxApiKey"
+      | "minimaxBaseUrl"
+      | "ollamaBaseUrl"
+    >;
     summaryEngine: ReturnType<typeof createModelExecutor>;
     summaryStream: SummaryStreamHandler | null;
     getLiteLlmCatalog: () => Promise<

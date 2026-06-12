@@ -1,5 +1,6 @@
 import { render as renderMarkdownAnsi } from "markdansi";
 import type { RunMetricsReport } from "../../../costs.js";
+import { buildRunJsonEnv, type RunApiAvailability } from "../../../shared/run-api-status.js";
 import type { AssetAttachment } from "../../attachments.js";
 import { buildExtractFinishLabel, writeFinishLine } from "../../finish-line.js";
 import { prepareMarkdownForTerminal } from "../../markdown.js";
@@ -44,15 +45,7 @@ export async function outputExtractedAsset({
   sourceLabel: string;
   attachment: AssetAttachment;
   extracted: AssetExtractResult;
-  apiStatus: {
-    xaiApiKey: string | null;
-    apiKey: string | null;
-    openrouterApiKey: string | null;
-    apifyToken: string | null;
-    firecrawlConfigured: boolean;
-    googleConfigured: boolean;
-    anthropicConfigured: boolean;
-  };
+  apiStatus: RunApiAvailability;
 }): Promise<void> {
   hooks.clearProgressForStdout();
   const finishLabel = buildExtractFinishLabel({
@@ -72,15 +65,7 @@ export async function outputExtractedAsset({
         format: flags.format,
         preprocess: flags.preprocessMode,
       },
-      env: {
-        hasXaiKey: Boolean(apiStatus.xaiApiKey),
-        hasOpenAIKey: Boolean(apiStatus.apiKey),
-        hasOpenRouterKey: Boolean(apiStatus.openrouterApiKey),
-        hasApifyToken: Boolean(apiStatus.apifyToken),
-        hasFirecrawlKey: apiStatus.firecrawlConfigured,
-        hasGoogleKey: apiStatus.googleConfigured,
-        hasAnthropicKey: apiStatus.anthropicConfigured,
-      },
+      env: buildRunJsonEnv(apiStatus),
       extracted: {
         kind: "asset" as const,
         source: sourceLabel,

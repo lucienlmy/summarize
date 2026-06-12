@@ -14,6 +14,7 @@ import type { OutputLanguage } from "../../../language.js";
 import type { ModelRequestOptions, OpenAiReasoningEffort } from "../../../llm/model-options.js";
 import type { ExecFileFn } from "../../../markitdown.js";
 import type { FixedModelSpec, RequestedModel } from "../../../model-spec.js";
+import type { RunApiStatus } from "../../../shared/run-api-status.js";
 import type {
   SlideExtractionResult,
   SlideImage,
@@ -95,40 +96,7 @@ export type UrlFlowModel = {
   openaiRequestOptionsOverride?: ModelRequestOptions;
   cliReasoningEffortOverride?: OpenAiReasoningEffort;
   openaiWhisperUsdPerMinute: number;
-  apiStatus: {
-    xaiApiKey: string | null;
-    apiKey: string | null;
-    nvidiaApiKey: string | null;
-    minimaxApiKey: string | null;
-    openrouterApiKey: string | null;
-    openrouterConfigured: boolean;
-    googleApiKey: string | null;
-    googleConfigured: boolean;
-    anthropicApiKey: string | null;
-    anthropicConfigured: boolean;
-    providerBaseUrls: {
-      openai: string | null;
-      nvidia: string | null;
-      anthropic: string | null;
-      google: string | null;
-      xai: string | null;
-    };
-    zaiApiKey: string | null;
-    zaiBaseUrl: string;
-    nvidiaBaseUrl: string;
-    minimaxBaseUrl: string;
-    ollamaBaseUrl: string;
-    firecrawlConfigured: boolean;
-    firecrawlApiKey: string | null;
-    apifyToken: string | null;
-    ytDlpPath: string | null;
-    ytDlpCookiesFromBrowser: string | null;
-    falApiKey: string | null;
-    groqApiKey: string | null;
-    assemblyaiApiKey: string | null;
-    elevenlabsApiKey: string | null;
-    openaiApiKey: string | null;
-  };
+  apiStatus: RunApiStatus;
   summaryEngine: ReturnType<typeof createModelExecutor>;
   summaryStream: SummaryStreamHandler | null;
   getLiteLlmCatalog: () => Promise<

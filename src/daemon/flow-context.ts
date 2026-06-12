@@ -14,6 +14,7 @@ import { execFileTracked } from "../processes.js";
 import { createRunFlowContexts } from "../run/flow-contexts.js";
 import type { UrlFlowContext } from "../run/flows/url/types.js";
 import { resolveProviderRuntimeBindings } from "../run/provider-runtime.js";
+import { resolveRunApiStatus } from "../run/run-api-status.js";
 import { resolveRunContextState } from "../run/run-context.js";
 import { createRunMetrics } from "../run/run-metrics.js";
 import { resolveModelSelection } from "../run/run-models.js";
@@ -189,35 +190,10 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     configForCli,
     openaiUseChatCompletions,
     configModelLabel,
-    apiKey,
-    openrouterApiKey,
-    openrouterConfigured,
-    groqApiKey,
-    assemblyaiApiKey,
-    elevenlabsApiKey,
-    openaiApiKey,
-    xaiApiKey,
-    googleApiKey,
-    anthropicApiKey,
-    zaiApiKey,
-    zaiBaseUrl,
-    nvidiaApiKey,
-    nvidiaBaseUrl,
-    minimaxApiKey,
-    minimaxBaseUrl,
-    ollamaBaseUrl,
-    providerBaseUrls,
-    firecrawlApiKey,
-    firecrawlConfigured,
-    googleConfigured,
-    anthropicConfigured,
     cliAvailability,
     envForAuto,
-    apifyToken,
-    ytDlpPath,
-    ytDlpCookiesFromBrowser,
-    falApiKey,
   } = runContext;
+  const apiStatus = resolveRunApiStatus(runContext);
   const providerRuntime = resolveProviderRuntimeBindings({
     env: envForRun,
     envState: runContext,
@@ -276,7 +252,7 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     resolveMaxInputTokensForCall: metrics.resolveMaxInputTokensForCall,
     llmCalls: metrics.llmCalls,
     providerRuntime,
-    openrouterApiKey,
+    openrouterApiKey: apiStatus.openrouterApiKey,
   });
   const summaryStream = createDaemonSummaryStreamHandler(stdoutSink);
 
@@ -360,34 +336,7 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     cliAvailability,
     openaiUseChatCompletions,
     openaiWhisperUsdPerMinute,
-    apiStatus: {
-      xaiApiKey,
-      apiKey,
-      nvidiaApiKey,
-      minimaxApiKey,
-      openrouterApiKey,
-      openrouterConfigured,
-      googleApiKey,
-      googleConfigured,
-      anthropicApiKey,
-      anthropicConfigured,
-      providerBaseUrls,
-      zaiApiKey,
-      zaiBaseUrl,
-      nvidiaBaseUrl,
-      minimaxBaseUrl,
-      ollamaBaseUrl,
-      firecrawlConfigured,
-      firecrawlApiKey,
-      apifyToken,
-      ytDlpPath,
-      ytDlpCookiesFromBrowser,
-      falApiKey,
-      groqApiKey,
-      assemblyaiApiKey,
-      elevenlabsApiKey,
-      openaiApiKey,
-    },
+    apiStatus,
     summaryEngine,
     summaryStream,
     getLiteLlmCatalog: metrics.getLiteLlmCatalog,
