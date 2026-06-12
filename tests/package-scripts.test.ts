@@ -43,6 +43,12 @@ describe("package scripts", () => {
     );
   });
 
+  it("builds core before source CLI aliases", () => {
+    expect(rootPackage.scripts["dev:cli"]).toBe("pnpm -C packages/core build && tsx src/cli.ts");
+    expect(rootPackage.scripts.s).toBe("pnpm dev:cli");
+    expect(rootPackage.scripts.summarize).toBe("pnpm dev:cli");
+  });
+
   it("typechecks both workspace layers from the root script", () => {
     expect(rootPackage.scripts.typecheck).toBe(
       "pnpm -C packages/core typecheck && tsgo -p tsconfig.build.json --noEmit",
