@@ -1,24 +1,9 @@
 import type { Settings, SlidesLayout } from "../../lib/settings";
+import { applyPanelStateAction, type PanelStateAction } from "./panel-state-store";
 import { mountSummarizeControl } from "./pickers";
 import type { SlideTextMode } from "./slides-state";
 import { resolveSlidesRenderLayout } from "./slides-view-policy";
-
-type SummarizeControlState = {
-  inputMode: "page" | "video";
-  inputModeOverride: "page" | "video" | null;
-  hasSummaryMarkdown: boolean;
-  slidesEnabled: boolean;
-  slidesOcrEnabled: boolean;
-  autoSummarize: boolean;
-  slidesBusy: boolean;
-  mediaAvailable: boolean;
-  slidesLayout: SlidesLayout;
-  summarizeVideoLabel: string;
-  summarizePageWords: number | null;
-  summarizeVideoDurationSeconds: number | null;
-  activeTabUrl: string | null;
-  currentSourceUrl: string | null;
-};
+import type { PanelState } from "./types";
 
 type SlidesTextControllerLike = {
   getTextMode: () => SlideTextMode;
@@ -32,11 +17,8 @@ type SummarizeControlRuntimeOptions = {
   renderSlidesHostEl: HTMLElement;
   slidesLayoutEl: HTMLSelectElement;
   slidesTextController: SlidesTextControllerLike;
-  getState: () => SummarizeControlState;
-  setInputMode: (value: "page" | "video") => void;
-  setInputModeOverride: (value: "page" | "video" | null) => void;
-  setSlidesEnabled: (value: boolean) => void;
-  setSlidesLayoutValue: (value: SlidesLayout) => void;
+  panelState: PanelState;
+  dispatchPanelState?: (action: PanelStateAction) => void;
   patchSettings: (patch: Partial<Settings>) => Promise<void>;
   loadSettings: () => Promise<Pick<Settings, "slideRuntime" | "token">>;
   showSlideNotice: (message: string) => void;
@@ -85,14 +67,21 @@ async function fetchSlideTools(
 }
 
 export function createSummarizeControlRuntime(options: SummarizeControlRuntimeOptions) {
+  const dispatch = (action: PanelStateAction) => {
+    if (options.dispatchPanelState) {
+      options.dispatchPanelState(action);
+    } else {
+      applyPanelStateAction(options.panelState, action);
+    }
+  };
   const getEffectiveMode = () =>
-    options.getState().inputModeOverride ?? options.getState().inputMode;
+    options.panelState.slidesSession.inputModeOverride ??
+    options.panelState.slidesSession.inputMode;
 
   const handleSlidesTextModeChange = (next: SlideTextMode) => {
-    const state = options.getState();
-    if (next === "ocr" && !state.slidesOcrEnabled) return;
+    if (next === "ocr" && !options.panelState.slidesSession.slidesOcrEnabled) return;
     if (!options.slidesTextController.setTextMode(next)) return;
-    if (state.hasSummaryMarkdown) {
+    if (options.panelState.summaryMarkdown) {
       options.renderInlineSlidesFallback();
     } else {
       options.queueSlidesRender();
@@ -101,13 +90,15 @@ export function createSummarizeControlRuntime(options: SummarizeControlRuntimeOp
   };
 
   const handleSummarizeControlChange = async (value: SummarizeControlPayload) => {
-    const state = options.getState();
-    const prevSlides = state.slidesEnabled;
-    const prevMode = state.inputMode;
-    if (value.slides && !state.slidesEnabled) {
+    const prevSlides = options.panelState.slidesSession.slidesEnabled;
+    const prevMode = options.panelState.slidesSession.inputMode;
+    if (value.slides && !prevSlides) {
       const settings = await options.loadSettings();
       if (settings.slideRuntime === "daemon") {
-        const tools = await fetchSlideTools(settings.token, state.slidesOcrEnabled);
+        const tools = await fetchSlideTools(
+          settings.token,
+          options.panelState.slidesSession.slidesOcrEnabled,
+        );
         if (!tools.ok) {
           options.showSlideNotice(
             `Slide extraction requires ${tools.missing.join(", ")}. Install and restart the daemon.`,
@@ -123,27 +114,35 @@ export function createSummarizeControlRuntime(options: SummarizeControlRuntimeOp
       options.stopSlidesStream();
     }
 
-    options.setInputMode(value.mode);
-    options.setInputModeOverride(value.mode);
-    options.setSlidesEnabled(value.slides);
+    dispatch({
+      type: "slides-session-update",
+      value: {
+        inputMode: value.mode,
+        inputModeOverride: value.mode,
+        slidesEnabled: value.slides,
+      },
+    });
     await options.patchSettings({ slidesEnabled: value.slides });
 
     if (value.slides && getEffectiveMode() === "video") {
       options.maybeApplyPendingSlidesSummary();
-      options.maybeStartPendingSlidesForUrl(options.getState().activeTabUrl);
+      options.maybeStartPendingSlidesForUrl(options.panelState.navigation.activeTabUrl);
     }
-    if (state.autoSummarize && (value.mode !== prevMode || value.slides !== prevSlides)) {
+    if (
+      options.panelState.panelSession.autoSummarize &&
+      (value.mode !== prevMode || value.slides !== prevSlides)
+    ) {
       options.sendSummarize({ refresh: true });
     }
     refreshSummarizeControl();
   };
 
   const retrySlidesStream = () => {
-    const state = options.getState();
-    if (!state.slidesEnabled) return;
+    if (!options.panelState.slidesSession.slidesEnabled) return;
     options.hideSlideNotice();
     const runId = options.resolveActiveSlidesRunId();
-    const targetUrl = state.currentSourceUrl ?? state.activeTabUrl ?? null;
+    const targetUrl =
+      options.panelState.currentSource?.url ?? options.panelState.navigation.activeTabUrl ?? null;
     if (runId) {
       const isLocalRun = options.isActiveSlidesRunLocal?.(runId) === true;
       options.startSlidesStreamForRunId(runId);
@@ -156,11 +155,10 @@ export function createSummarizeControlRuntime(options: SummarizeControlRuntimeOp
   };
 
   const applySlidesLayout = () => {
-    const state = options.getState();
     options.renderMarkdownHostEl.classList.remove("hidden");
     options.renderSlidesHostEl.dataset.layout = resolveSlidesRenderLayout({
-      preferredLayout: state.slidesLayout,
-      slidesEnabled: state.slidesEnabled,
+      preferredLayout: options.panelState.slidesSession.slidesLayout,
+      slidesEnabled: options.panelState.slidesSession.slidesEnabled,
       inputMode: getEffectiveMode(),
     });
     options.renderMarkdownDisplay();
@@ -168,15 +166,18 @@ export function createSummarizeControlRuntime(options: SummarizeControlRuntimeOp
   };
 
   const setSlidesLayout = (next: SlidesLayout) => {
-    if (next === options.getState().slidesLayout) return;
-    options.setSlidesLayoutValue(next);
+    if (next === options.panelState.slidesSession.slidesLayout) return;
+    dispatch({
+      type: "slides-session-update",
+      value: { slidesLayout: next },
+    });
     options.slidesLayoutEl.value = next;
     applySlidesLayout();
   };
 
   const summarizeControl = mountSummarizeControl(options.summarizeControlRoot, {
-    mode: options.getState().inputMode,
-    slidesEnabled: options.getState().slidesEnabled,
+    mode: options.panelState.slidesSession.inputMode,
+    slidesEnabled: options.panelState.slidesSession.slidesEnabled,
     mediaAvailable: false,
     videoLabel: "Video",
     busy: false,
@@ -188,7 +189,7 @@ export function createSummarizeControlRuntime(options: SummarizeControlRuntimeOp
   });
 
   function refreshSummarizeControl() {
-    const state = options.getState();
+    const state = options.panelState.slidesSession;
     summarizeControl.update({
       mode: state.inputMode,
       slidesEnabled: state.slidesEnabled,

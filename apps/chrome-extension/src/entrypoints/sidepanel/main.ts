@@ -1572,34 +1572,8 @@ summarizeControlRuntime = createSummarizeControlRuntime({
   renderSlidesHostEl,
   slidesLayoutEl,
   slidesTextController,
-  getState: () => ({
-    inputMode: getSlidesState().inputMode,
-    inputModeOverride: getSlidesState().inputModeOverride,
-    hasSummaryMarkdown: Boolean(panelState.summaryMarkdown),
-    slidesEnabled: getSlidesState().slidesEnabled,
-    slidesOcrEnabled: getSlidesState().slidesOcrEnabled,
-    autoSummarize: getPanelSession().autoSummarize,
-    slidesBusy: getSlidesState().slidesBusy,
-    mediaAvailable: getSlidesState().mediaAvailable,
-    slidesLayout: getSlidesState().slidesLayout,
-    summarizeVideoLabel: getSlidesState().summarizeVideoLabel,
-    summarizePageWords: getSlidesState().summarizePageWords,
-    summarizeVideoDurationSeconds: getSlidesState().summarizeVideoDurationSeconds,
-    activeTabUrl: getActiveTabUrl(),
-    currentSourceUrl: panelState.currentSource?.url ?? null,
-  }),
-  setInputMode: (value) => {
-    updateSlidesState({ inputMode: value });
-  },
-  setInputModeOverride: (value) => {
-    updateSlidesState({ inputModeOverride: value });
-  },
-  setSlidesEnabled: (value) => {
-    updateSlidesState({ slidesEnabled: value });
-  },
-  setSlidesLayoutValue: (value) => {
-    updateSlidesState({ slidesLayout: value });
-  },
+  panelState,
+  dispatchPanelState: panelStateStore.dispatch,
   patchSettings,
   loadSettings,
   showSlideNotice: (message) => {

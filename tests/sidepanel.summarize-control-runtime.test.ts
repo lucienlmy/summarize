@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createInitialPanelState,
+  createPanelStateStore,
+} from "../apps/chrome-extension/src/entrypoints/sidepanel/panel-state-store";
 import type { SlideTextMode } from "../apps/chrome-extension/src/entrypoints/sidepanel/slides-state";
 import { createSummarizeControlRuntime } from "../apps/chrome-extension/src/entrypoints/sidepanel/summarize-control-runtime";
 import type { Settings, SlidesLayout } from "../apps/chrome-extension/src/lib/settings";
@@ -69,6 +73,26 @@ function buildRuntime(
   summarizeControlUpdate.mockReset();
 
   const state = buildState(overrides.state);
+  const initialPanelState = createInitialPanelState();
+  Object.assign(initialPanelState.slidesSession, {
+    inputMode: state.inputMode,
+    inputModeOverride: state.inputModeOverride,
+    slidesEnabled: state.slidesEnabled,
+    slidesOcrEnabled: state.slidesOcrEnabled,
+    slidesBusy: state.slidesBusy,
+    mediaAvailable: state.mediaAvailable,
+    slidesLayout: state.slidesLayout,
+    summarizeVideoLabel: state.summarizeVideoLabel,
+    summarizePageWords: state.summarizePageWords,
+    summarizeVideoDurationSeconds: state.summarizeVideoDurationSeconds,
+  });
+  initialPanelState.summaryMarkdown = state.hasSummaryMarkdown ? "# Summary" : null;
+  initialPanelState.panelSession.autoSummarize = state.autoSummarize;
+  initialPanelState.navigation.activeTabUrl = state.activeTabUrl;
+  initialPanelState.currentSource = state.currentSourceUrl
+    ? { url: state.currentSourceUrl, title: null }
+    : null;
+  const panelStateStore = createPanelStateStore(initialPanelState);
   const calls = {
     patchSettings: vi.fn(async (_patch: Partial<Settings>) => {}),
     loadSettings: vi.fn(
@@ -77,7 +101,10 @@ function buildRuntime(
     showSlideNotice: vi.fn(),
     hideSlideNotice: vi.fn(),
     setSlidesBusy: vi.fn((value: boolean) => {
-      state.slidesBusy = value;
+      panelStateStore.dispatch({
+        type: "slides-session-update",
+        value: { slidesBusy: value },
+      });
     }),
     stopSlidesStream: vi.fn(),
     maybeApplyPendingSlidesSummary: vi.fn(),
@@ -109,19 +136,8 @@ function buildRuntime(
     renderSlidesHostEl,
     slidesLayoutEl,
     slidesTextController,
-    getState: () => state,
-    setInputMode: (value) => {
-      state.inputMode = value;
-    },
-    setInputModeOverride: (value) => {
-      state.inputModeOverride = value;
-    },
-    setSlidesEnabled: (value) => {
-      state.slidesEnabled = value;
-    },
-    setSlidesLayoutValue: (value) => {
-      state.slidesLayout = value;
-    },
+    panelState: panelStateStore.state,
+    dispatchPanelState: panelStateStore.dispatch,
     patchSettings: calls.patchSettings,
     loadSettings: calls.loadSettings,
     showSlideNotice: calls.showSlideNotice,
@@ -142,7 +158,7 @@ function buildRuntime(
   });
 
   return {
-    state,
+    state: panelStateStore.state,
     calls,
     runtime,
     currentProps: () => currentProps,
@@ -183,7 +199,7 @@ describe("sidepanel summarize control runtime", () => {
       "Slide extraction requires ffmpeg. Install and restart the daemon.",
     );
     expect(calls.patchSettings).not.toHaveBeenCalled();
-    expect(state.slidesEnabled).toBe(false);
+    expect(state.slidesSession.slidesEnabled).toBe(false);
   });
 
   it("enables browser runtime slides without daemon tool checks", async () => {
@@ -198,7 +214,7 @@ describe("sidepanel summarize control runtime", () => {
     expect(calls.showSlideNotice).not.toHaveBeenCalled();
     expect(calls.hideSlideNotice).toHaveBeenCalledOnce();
     expect(calls.patchSettings).toHaveBeenCalledWith({ slidesEnabled: true });
-    expect(state.slidesEnabled).toBe(true);
+    expect(state.slidesSession.slidesEnabled).toBe(true);
   });
 
   it("disabling slides stops active work and persists the setting", async () => {
@@ -218,8 +234,8 @@ describe("sidepanel summarize control runtime", () => {
     expect(calls.stopSlidesStream).toHaveBeenCalledOnce();
     expect(calls.patchSettings).toHaveBeenCalledWith({ slidesEnabled: false });
     expect(calls.sendSummarize).toHaveBeenCalledWith({ refresh: true });
-    expect(state.slidesEnabled).toBe(false);
-    expect(state.inputModeOverride).toBe("page");
+    expect(state.slidesSession.slidesEnabled).toBe(false);
+    expect(state.slidesSession.inputModeOverride).toBe("page");
   });
 
   it("retries existing slide streams instead of re-summarizing", () => {
