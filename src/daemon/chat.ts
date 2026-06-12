@@ -1,14 +1,17 @@
 import type { Context, Message } from "@earendil-works/pi-ai";
 import type { CliProvider, SummarizeConfig } from "../config.js";
+import { createFixedModelAttempt } from "../engine/fixed-model-attempt.js";
+import { resolveModelAttemptOpenAiOverrides } from "../engine/provider-attempt.js";
+import type { ModelAttempt } from "../engine/types.js";
 import { runCliModel } from "../llm/cli.js";
 import type { LlmApiKeys } from "../llm/generate-text.js";
 import { streamTextWithContext } from "../llm/generate-text.js";
-import { resolveGitHubModelsApiKey } from "../llm/github-models.js";
 import { parseGatewayStyleModelId } from "../llm/model-id.js";
 import { mergeModelRequestOptions, mergeRequestOptionsForProvider } from "../llm/model-options.js";
-import { buildAutoModelAttempts, envHasKey, type AutoModelAttempt } from "../model-auto.js";
-import { parseBooleanEnv, parseCliUserModelId } from "../run/env.js";
-import { resolveEnvState, type EnvState } from "../run/run-env.js";
+import { buildAutoModelAttempts, envHasKey } from "../model-auto.js";
+import { parseCliUserModelId } from "../run/env.js";
+import { resolveProviderRuntimeBindings } from "../run/provider-runtime.js";
+import { resolveEnvState } from "../run/run-env.js";
 import { resolveModelSelection } from "../run/run-models.js";
 
 type ChatSession = {
@@ -108,84 +111,6 @@ function resolveApiKeys(
   };
 }
 
-function resolveOpenAiUseChatCompletions({
-  env,
-  configForCli,
-}: {
-  env: Record<string, string | undefined>;
-  configForCli: SummarizeConfig | null;
-}): boolean | undefined {
-  const envValue = parseBooleanEnv(env.OPENAI_USE_CHAT_COMPLETIONS);
-  if (envValue !== null) return envValue;
-  return typeof configForCli?.openai?.useChatCompletions === "boolean"
-    ? configForCli.openai.useChatCompletions
-    : undefined;
-}
-
-function resolveAutoOpenAiCompatibleOverrides({
-  requiredEnv,
-  env,
-  envState,
-  openaiUseChatCompletions,
-}: {
-  requiredEnv: AutoModelAttempt["requiredEnv"];
-  env: Record<string, string | undefined>;
-  envState: EnvState;
-  openaiUseChatCompletions: boolean | undefined;
-}): {
-  openaiApiKey: string | null | undefined;
-  openaiBaseUrl: string | null | undefined;
-  forceChatCompletions: boolean | undefined;
-} {
-  if (requiredEnv === "Z_AI_API_KEY") {
-    return {
-      openaiApiKey: envState.zaiApiKey,
-      openaiBaseUrl: envState.zaiBaseUrl,
-      forceChatCompletions: true,
-    };
-  }
-  if (requiredEnv === "NVIDIA_API_KEY") {
-    return {
-      openaiApiKey: envState.nvidiaApiKey,
-      openaiBaseUrl: envState.nvidiaBaseUrl,
-      forceChatCompletions: true,
-    };
-  }
-  if (requiredEnv === "MINIMAX_API_KEY") {
-    return {
-      openaiApiKey: envState.minimaxApiKey,
-      openaiBaseUrl: envState.minimaxBaseUrl,
-      forceChatCompletions: true,
-    };
-  }
-  if (requiredEnv === "GITHUB_TOKEN") {
-    return {
-      openaiApiKey: resolveGitHubModelsApiKey(env),
-      openaiBaseUrl: "https://models.github.ai/inference",
-      forceChatCompletions: true,
-    };
-  }
-  if (requiredEnv === "OLLAMA_BASE_URL") {
-    return {
-      openaiApiKey: null,
-      openaiBaseUrl: envState.ollamaBaseUrl,
-      forceChatCompletions: true,
-    };
-  }
-  if (requiredEnv === "OPENAI_API_KEY") {
-    return {
-      openaiApiKey: undefined,
-      openaiBaseUrl: envState.providerBaseUrls.openai,
-      forceChatCompletions: openaiUseChatCompletions,
-    };
-  }
-  return {
-    openaiApiKey: undefined,
-    openaiBaseUrl: undefined,
-    forceChatCompletions: undefined,
-  };
-}
-
 export async function streamChatResponse({
   env,
   fetchImpl,
@@ -213,11 +138,11 @@ export async function streamChatResponse({
 }) {
   const apiKeys = resolveApiKeys(env, configForCli);
   const envState = resolveEnvState({ env, envForRun: env, configForCli });
-  const openaiUseChatCompletions = resolveOpenAiUseChatCompletions({ env, configForCli });
+  const providerRuntime = resolveProviderRuntimeBindings({ env, envState, configForCli });
   const openaiRequestOptions = mergeModelRequestOptions(configForCli?.openai);
   const context = buildContext({ pageUrl, pageTitle, pageContent, messages });
 
-  const resolveModel = () => {
+  const resolveModel = (): ModelAttempt | null => {
     if (modelOverride && modelOverride.trim().length > 0) {
       const { requestedModel: requested } = resolveModelSelection({
         config: configForCli ?? null,
@@ -229,69 +154,19 @@ export async function streamChatResponse({
       if (requested.kind === "auto") {
         return null;
       }
+      const attempt = createFixedModelAttempt(requested);
       if (requested.transport === "cli") {
         const cliModel =
           requested.cliModel ?? resolveConfiguredCliModel(requested.cliProvider, configForCli);
         return {
-          userModelId: cliModel
-            ? `cli/${requested.cliProvider}/${cliModel}`
-            : requested.userModelId,
-          modelId: null,
-          forceOpenRouter: false,
-          transport: "cli" as const,
-          cliProvider: requested.cliProvider,
+          ...attempt,
+          userModelId: cliModel ? `cli/${requested.cliProvider}/${cliModel}` : attempt.userModelId,
           cliModel,
         };
       }
-      if (requested.transport === "openrouter") {
-        return {
-          userModelId: requested.userModelId,
-          modelId: requested.llmModelId,
-          forceOpenRouter: requested.forceOpenRouter,
-          transport: "native" as const,
-          openaiApiKeyOverride: null,
-          openaiBaseUrlOverride: null,
-          forceChatCompletions: undefined,
-        };
-      }
       return {
-        userModelId: requested.userModelId,
-        modelId: requested.llmModelId,
-        forceOpenRouter: requested.forceOpenRouter,
-        transport: "native" as const,
-        openaiApiKeyOverride:
-          requested.requiredEnv === "Z_AI_API_KEY"
-            ? envState.zaiApiKey
-            : requested.requiredEnv === "NVIDIA_API_KEY"
-              ? envState.nvidiaApiKey
-              : requested.requiredEnv === "MINIMAX_API_KEY"
-                ? envState.minimaxApiKey
-                : requested.requiredEnv === "GITHUB_TOKEN"
-                  ? resolveGitHubModelsApiKey(env)
-                  : requested.requiredEnv === "OPENAI_API_KEY"
-                    ? undefined
-                    : null,
-        openaiBaseUrlOverride:
-          requested.requiredEnv === "Z_AI_API_KEY"
-            ? envState.zaiBaseUrl
-            : requested.requiredEnv === "NVIDIA_API_KEY"
-              ? envState.nvidiaBaseUrl
-              : requested.requiredEnv === "MINIMAX_API_KEY"
-                ? envState.minimaxBaseUrl
-                : requested.requiredEnv === "OLLAMA_BASE_URL"
-                  ? envState.ollamaBaseUrl
-                  : requested.provider === "openai"
-                    ? (requested.openaiBaseUrlOverride ?? envState.providerBaseUrls.openai)
-                    : (requested.openaiBaseUrlOverride ?? null),
-        forceChatCompletions:
-          typeof requested.forceChatCompletions === "boolean"
-            ? requested.forceChatCompletions
-            : requested.requiredEnv === "OLLAMA_BASE_URL"
-              ? true
-              : requested.provider === "openai"
-                ? openaiUseChatCompletions
-                : undefined,
-        requestOptions: requested.requestOptions,
+        ...attempt,
+        ...resolveModelAttemptOpenAiOverrides(attempt, providerRuntime),
       };
     }
     return null;
@@ -319,7 +194,7 @@ export async function streamChatResponse({
       return;
     }
     const result = await streamTextWithContext({
-      modelId: resolved.modelId!,
+      modelId: resolved.llmModelId!,
       apiKeys: {
         ...apiKeys,
         openaiApiKey:
@@ -331,10 +206,11 @@ export async function streamChatResponse({
       timeoutMs: 30_000,
       fetchImpl,
       forceOpenRouter: resolved.forceOpenRouter,
-      openaiBaseUrlOverride: resolved.openaiBaseUrlOverride,
+      openaiBaseUrlOverride:
+        resolved.transport === "openrouter" ? undefined : resolved.openaiBaseUrlOverride,
       forceChatCompletions: resolved.forceChatCompletions,
       requestOptions: mergeRequestOptionsForProvider({
-        provider: parseGatewayStyleModelId(resolved.modelId!).provider,
+        provider: parseGatewayStyleModelId(resolved.llmModelId!).provider,
         openaiGlobalDefault: openaiRequestOptions,
         attemptOptions: resolved.requestOptions,
         openaiOverride: undefined,
@@ -394,30 +270,30 @@ export async function streamChatResponse({
     return;
   }
 
-  const autoOverrides = resolveAutoOpenAiCompatibleOverrides({
-    requiredEnv: attempt.requiredEnv,
-    env,
-    envState,
-    openaiUseChatCompletions,
-  });
+  const resolvedAttempt = {
+    ...attempt,
+    ...resolveModelAttemptOpenAiOverrides(attempt, providerRuntime),
+  };
   const result = await streamTextWithContext({
-    modelId: attempt.llmModelId!,
+    modelId: resolvedAttempt.llmModelId!,
     apiKeys:
-      autoOverrides.openaiApiKey === undefined
+      resolvedAttempt.openaiApiKeyOverride === undefined
         ? apiKeys
-        : { ...apiKeys, openaiApiKey: autoOverrides.openaiApiKey },
+        : { ...apiKeys, openaiApiKey: resolvedAttempt.openaiApiKeyOverride },
     context,
     timeoutMs: 30_000,
     fetchImpl,
-    forceOpenRouter: attempt.forceOpenRouter,
+    forceOpenRouter: resolvedAttempt.forceOpenRouter,
     openaiBaseUrlOverride:
-      attempt.transport === "openrouter" ? undefined : autoOverrides.openaiBaseUrl,
+      resolvedAttempt.transport === "openrouter"
+        ? undefined
+        : resolvedAttempt.openaiBaseUrlOverride,
     forceChatCompletions:
-      attempt.transport === "openrouter" ? undefined : autoOverrides.forceChatCompletions,
+      resolvedAttempt.transport === "openrouter" ? undefined : resolvedAttempt.forceChatCompletions,
     requestOptions: mergeRequestOptionsForProvider({
-      provider: parseGatewayStyleModelId(attempt.llmModelId!).provider,
+      provider: parseGatewayStyleModelId(resolvedAttempt.llmModelId!).provider,
       openaiGlobalDefault: openaiRequestOptions,
-      attemptOptions: attempt.requestOptions,
+      attemptOptions: resolvedAttempt.requestOptions,
       openaiOverride: undefined,
     }),
   });

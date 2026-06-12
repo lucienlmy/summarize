@@ -6,15 +6,13 @@ import { parseGatewayStyleModelId } from "../llm/model-id.js";
 import { mergeRequestOptionsForProvider } from "../llm/model-options.js";
 import type { ModelRequestOptions, OpenAiReasoningEffort } from "../llm/model-options.js";
 import type { Prompt } from "../llm/prompt.js";
-import {
-  resolveProviderOpenAiOverrides,
-  type ProviderRuntimeBindings,
-} from "../llm/provider-profile.js";
+import type { ProviderRuntimeBindings } from "../llm/provider-profile.js";
 import { formatCompactCount } from "../shared/format-count.js";
 import { countTokens } from "../tokenizer.js";
 import { EngineError } from "./errors.js";
 import type { SummaryStreamHandler } from "./events.js";
 import { resolveModelIdForLlmCall, summarizeWithModelId } from "./model-call.js";
+import { applyProviderRuntimeToModelAttempt } from "./provider-attempt.js";
 import {
   canStream,
   isGoogleStreamingUnsupportedError,
@@ -100,7 +98,8 @@ export function createModelExecutor(deps: ModelExecutorDeps) {
       zai: deps.zai.apiKey,
       nvidia: deps.nvidia.apiKey,
       minimax: deps.minimax.apiKey,
-      "github-copilot": null,
+      "github-copilot": resolveGitHubModelsApiKey(deps.envForRun),
+      ollama: null,
     },
     baseUrls: {
       openai: deps.providerBaseUrls.openai,
@@ -133,28 +132,8 @@ export function createModelExecutor(deps: ModelExecutorDeps) {
     };
   };
 
-  const applyOpenAiGatewayOverrides = (attempt: ModelAttempt): ModelAttempt => {
-    if (attempt.transport === "cli" || attempt.transport === "openrouter") return attempt;
-    const provider = parseGatewayStyleModelId(attempt.userModelId).provider;
-    const runtime =
-      provider === "github-copilot"
-        ? {
-            ...providerRuntime,
-            apiKeys: {
-              ...providerRuntime.apiKeys,
-              "github-copilot": resolveGitHubModelsApiKey(deps.envForRun),
-            },
-          }
-        : providerRuntime;
-    return {
-      ...attempt,
-      ...resolveProviderOpenAiOverrides({
-        provider,
-        runtime,
-        baseUrlOverride: attempt.openaiBaseUrlOverride,
-      }),
-    };
-  };
+  const applyOpenAiGatewayOverrides = (attempt: ModelAttempt): ModelAttempt =>
+    applyProviderRuntimeToModelAttempt(attempt, providerRuntime);
 
   const envHasKeyFor = (requiredEnv: ModelAttempt["requiredEnv"]) => {
     if (requiredEnv === "CLI_CLAUDE") {
