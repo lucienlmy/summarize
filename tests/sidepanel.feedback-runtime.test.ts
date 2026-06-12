@@ -6,6 +6,7 @@ import {
   createInitialPanelState,
   createPanelStateStore,
 } from "../apps/chrome-extension/src/entrypoints/sidepanel/panel-state-store";
+import { createPanelPhaseRuntime } from "../apps/chrome-extension/src/entrypoints/sidepanel/phase-runtime";
 
 function createHarness(options: { storageThrows?: boolean } = {}) {
   const store = createPanelStateStore(createInitialPanelState());
@@ -56,7 +57,6 @@ function createHarness(options: { storageThrows?: boolean } = {}) {
   };
   const runtime = createSidepanelFeedbackRuntime({
     panelState: store.state,
-    dispatchPanelState: store.dispatch,
     headerEl,
     titleEl,
     subtitleEl,
@@ -76,6 +76,18 @@ function createHarness(options: { storageThrows?: boolean } = {}) {
     retryLastAction,
     retrySlidesStream,
     sendOpenOptions,
+    eventTarget: {
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+    },
+    storage,
+  });
+  const phaseRuntime = createPanelPhaseRuntime({
+    panelState: store.state,
+    dispatchPanelState: store.dispatch,
+    errorController: runtime.errorController,
+    headerController: runtime.headerController,
     setSlidesBusy,
     rebuildSlideDescriptions,
     queueSlidesRender,
@@ -84,7 +96,6 @@ function createHarness(options: { storageThrows?: boolean } = {}) {
         listeners.set(type, listener);
       },
     },
-    storage,
   });
 
   return {
@@ -98,6 +109,7 @@ function createHarness(options: { storageThrows?: boolean } = {}) {
     panelErrorLogsBtn,
     panelErrorMessageEl,
     panelErrorRetryBtn,
+    phaseRuntime,
     queueSlidesRender,
     rebuildSlideDescriptions,
     retryLastAction,
@@ -141,27 +153,27 @@ describe("sidepanel feedback runtime", () => {
   it("keeps phase, error, progress, and slide render effects synchronized", () => {
     const harness = createHarness();
 
-    harness.runtime.setPhase("connecting");
+    harness.phaseRuntime.setPhase("connecting");
     expect(harness.store.state.phase).toBe("connecting");
     expect(harness.setSlidesBusy).not.toHaveBeenCalled();
 
-    harness.runtime.setPhase("idle");
+    harness.phaseRuntime.setPhase("idle");
     expect(harness.setSlidesBusy).toHaveBeenCalledWith(false);
     expect(harness.rebuildSlideDescriptions).not.toHaveBeenCalled();
 
     harness.store.state.slides = { slides: [] } as never;
-    harness.runtime.setPhase("streaming");
-    harness.runtime.setPhase("idle");
+    harness.phaseRuntime.setPhase("streaming");
+    harness.phaseRuntime.setPhase("idle");
     expect(harness.rebuildSlideDescriptions).toHaveBeenCalledOnce();
     expect(harness.queueSlidesRender).toHaveBeenCalledOnce();
 
-    harness.runtime.setPhase("error", { error: "Failure" });
+    harness.phaseRuntime.setPhase("error", { error: "Failure" });
     expect(harness.store.state.error).toBe("Failure");
     expect(harness.panelErrorMessageEl.textContent).toBe("Failure");
     expect(harness.panelErrorEl.classList.contains("hidden")).toBe(false);
     expect(harness.setSlidesBusy).toHaveBeenLastCalledWith(false);
 
-    harness.runtime.setPhase("error", { error: "" });
+    harness.phaseRuntime.setPhase("error", { error: "" });
     expect(harness.panelErrorMessageEl.textContent).toBe("Something went wrong.");
   });
 
@@ -210,7 +222,9 @@ describe("sidepanel feedback runtime", () => {
     errorListener?.(new ErrorEvent("error", { message: "message-only failure" }));
     expect(harness.store.state.error).toBe("message-only failure");
 
-    rejectionListener?.({ reason: new Error("promise failure") } as PromiseRejectionEvent);
+    rejectionListener?.({
+      reason: new Error("promise failure"),
+    } as PromiseRejectionEvent);
     expect(harness.store.state.error).toContain("promise failure");
 
     rejectionListener?.({ reason: "rejected" } as PromiseRejectionEvent);

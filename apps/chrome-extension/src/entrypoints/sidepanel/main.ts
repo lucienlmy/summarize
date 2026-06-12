@@ -23,6 +23,7 @@ import { createNavigationRuntime } from "./navigation-runtime";
 import { createPanelCacheController, type PanelCachePayload } from "./panel-cache";
 import { createPanelMessagingRuntime } from "./panel-messaging";
 import { createPanelStateStore } from "./panel-state-store";
+import { createPanelPhaseRuntime } from "./phase-runtime";
 import { createPlannedSlidesRuntime } from "./planned-slides-runtime";
 import { createRequiredRuntimeReference } from "./runtime-reference";
 import { panelUrlsMatch } from "./session-policy";
@@ -235,7 +236,6 @@ const isStreaming = () => panelState.phase === "connecting" || panelState.phase 
 
 const feedbackRuntime = createSidepanelFeedbackRuntime({
   panelState,
-  dispatchPanelState: panelStateStore.dispatch,
   headerEl,
   titleEl,
   subtitleEl,
@@ -257,12 +257,19 @@ const feedbackRuntime = createSidepanelFeedbackRuntime({
   sendOpenOptions: () => {
     void send({ type: "panel:openOptions" });
   },
+});
+const { errorController, headerController, hideSlideNotice, showSlideNotice } = feedbackRuntime;
+
+const phaseRuntime = createPanelPhaseRuntime({
+  panelState,
+  dispatchPanelState: panelStateStore.dispatch,
+  errorController,
+  headerController,
   setSlidesBusy,
   rebuildSlideDescriptions,
   queueSlidesRender,
 });
-const { errorController, headerController, hideSlideNotice, setPhase, showSlideNotice } =
-  feedbackRuntime;
+const { setPhase } = phaseRuntime;
 
 const navigationRuntime = createNavigationRuntime({
   getCurrentSource: () => panelState.currentSource,
@@ -401,7 +408,10 @@ function setSlidesBusy(next: boolean) {
 
 function updateSlideSummaryFromMarkdown(
   markdown: string,
-  opts?: { preserveIfEmpty?: boolean; source?: Exclude<SlideSummarySource, null> },
+  opts?: {
+    preserveIfEmpty?: boolean;
+    source?: Exclude<SlideSummarySource, null>;
+  },
 ) {
   slidesViewReference.get().updateSlideSummaryFromMarkdown(markdown, opts);
 }

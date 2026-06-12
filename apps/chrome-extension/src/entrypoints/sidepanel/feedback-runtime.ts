@@ -1,7 +1,6 @@
 import { createErrorController } from "./error-controller";
 import { createHeaderController } from "./header-controller";
-import type { PanelStateAction } from "./panel-state-store";
-import type { PanelPhase, PanelState } from "./types";
+import type { PanelState } from "./types";
 
 type FeedbackEventTarget = {
   addEventListener: (type: string, listener: EventListener) => void;
@@ -11,7 +10,6 @@ const OPTIONS_TAB_STORAGE_KEY = "summarize:options-tab";
 
 export function createSidepanelFeedbackRuntime({
   panelState,
-  dispatchPanelState,
   headerEl,
   titleEl,
   subtitleEl,
@@ -31,14 +29,10 @@ export function createSidepanelFeedbackRuntime({
   retryLastAction,
   retrySlidesStream,
   sendOpenOptions,
-  setSlidesBusy,
-  rebuildSlideDescriptions,
-  queueSlidesRender,
   eventTarget = window,
   storage = localStorage,
 }: {
   panelState: PanelState;
-  dispatchPanelState: (action: PanelStateAction) => void;
   headerEl: HTMLElement;
   titleEl: HTMLElement;
   subtitleEl: HTMLElement;
@@ -58,9 +52,6 @@ export function createSidepanelFeedbackRuntime({
   retryLastAction: () => void;
   retrySlidesStream: () => void;
   sendOpenOptions: () => void;
-  setSlidesBusy: (value: boolean) => void;
-  rebuildSlideDescriptions: () => void;
-  queueSlidesRender: () => void;
   eventTarget?: FeedbackEventTarget;
   storage?: Pick<Storage, "setItem">;
 }) {
@@ -113,56 +104,14 @@ export function createSidepanelFeedbackRuntime({
     headerController.updateHeaderOffset();
   };
 
-  const setPhase = (phase: PanelPhase, options?: { error?: string | null }) => {
-    dispatchPanelState({ type: "phase", phase, error: options?.error });
-    const running = phase === "connecting" || phase === "streaming";
-    if (phase === "error") {
-      const message =
-        panelState.error && panelState.error.trim().length > 0
-          ? panelState.error
-          : "Something went wrong.";
-      errorController.showPanelError(message);
-      setSlidesBusy(false);
-    } else {
-      errorController.clearPanelError();
-      if (!running) setSlidesBusy(false);
-    }
-    if (running) {
-      headerController.armProgress();
-    } else {
-      headerController.stopProgress();
-      if (panelState.slides) {
-        rebuildSlideDescriptions();
-        queueSlidesRender();
-      }
-    }
-  };
-
-  const handleGlobalError = (event: ErrorEvent) => {
-    const message =
-      event.error instanceof Error ? event.error.stack || event.error.message : event.message;
-    headerController.setStatus(`Error: ${message}`);
-    setPhase("error", { error: message });
-  };
-
-  const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-    const { reason } = event;
-    const message = reason instanceof Error ? reason.stack || reason.message : String(reason);
-    headerController.setStatus(`Error: ${message}`);
-    setPhase("error", { error: message });
-  };
-
   headerController.updateHeaderOffset();
   eventTarget.addEventListener("resize", headerController.updateHeaderOffset as EventListener);
-  eventTarget.addEventListener("error", handleGlobalError as EventListener);
-  eventTarget.addEventListener("unhandledrejection", handleUnhandledRejection as EventListener);
   slideNoticeRetryBtn.addEventListener("click", retrySlidesStream);
 
   return {
     errorController,
     headerController,
     hideSlideNotice,
-    setPhase,
     showSlideNotice,
   };
 }
