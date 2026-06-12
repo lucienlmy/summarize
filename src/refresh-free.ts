@@ -4,6 +4,11 @@ import { dirname, join } from "node:path";
 import JSON5 from "json5";
 import type { LlmApiKeys } from "./llm/generate-text.js";
 import { generateTextWithModelId } from "./llm/generate-text.js";
+import {
+  filterOpenRouterFreeModels,
+  parseOpenRouterCatalog,
+  rankOpenRouterModelsForBenchmark,
+} from "./refresh-free/catalog.js";
 
 type GenerateFreeOptions = {
   runs: number;
@@ -46,25 +51,6 @@ function formatTokenK(value: number): string {
   if (value < 1024) return `${Math.round(value)}`;
   const k = Math.round(value / 1024);
   return `${k}k`;
-}
-
-function inferParamBFromIdOrName(text: string): number | null {
-  const raw = text.toLowerCase();
-
-  // Common patterns:
-  // - "...-70b-..." / "...-32b" / "...-8b-..."
-  // - "...-e2b-..." (gemma-3n-e2b)
-  // - "...-1.5b-..."
-  const matches = raw.matchAll(/(?:^|[^a-z0-9])[a-z]?(\d+(?:\.\d+)?)b(?:[^a-z0-9]|$)/g);
-  let best: number | null = null;
-  for (const m of matches) {
-    const numRaw = m[1];
-    if (!numRaw) continue;
-    const value = Number(numRaw);
-    if (!Number.isFinite(value) || value <= 0) continue;
-    if (best === null || value > best) best = value;
-  }
-  return best;
 }
 
 function classifyOpenRouterRateLimit(message: string): RateLimitKind | null {
@@ -151,16 +137,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-type OpenRouterModelEntry = {
-  id: string;
-  contextLength: number | null;
-  maxCompletionTokens: number | null;
-  supportedParametersCount: number;
-  modality: string | null;
-  inferredParamB: number | null;
-  createdAtMs: number | null;
-};
-
 async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -241,78 +217,12 @@ export async function refreshFree({
   if (!response.ok) {
     throw new Error(`OpenRouter /models failed: HTTP ${response.status}`);
   }
-  const payload = (await response.json()) as { data?: unknown };
-  const entries = (Array.isArray(payload.data) ? payload.data : []) as unknown[];
-
-  const catalogModels: OpenRouterModelEntry[] = entries
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") return null;
-      const obj = entry as Record<string, unknown>;
-      const id = typeof obj.id === "string" ? obj.id.trim() : "";
-      if (!id) return null;
-      const name = typeof obj.name === "string" ? obj.name.trim() : "";
-
-      const contextLength =
-        typeof obj.context_length === "number" && Number.isFinite(obj.context_length)
-          ? obj.context_length
-          : null;
-
-      const topProvider =
-        obj.top_provider && typeof obj.top_provider === "object"
-          ? (obj.top_provider as Record<string, unknown>)
-          : null;
-      const maxCompletionTokens =
-        typeof topProvider?.max_completion_tokens === "number" &&
-        Number.isFinite(topProvider.max_completion_tokens)
-          ? (topProvider.max_completion_tokens as number)
-          : null;
-
-      const supportedParametersCount = (() => {
-        const sp = obj.supported_parameters;
-        if (!Array.isArray(sp)) return 0;
-        return sp.filter((v) => typeof v === "string" && v.trim().length > 0).length;
-      })();
-
-      const modality = (() => {
-        const arch =
-          obj.architecture && typeof obj.architecture === "object"
-            ? (obj.architecture as Record<string, unknown>)
-            : null;
-        const raw = typeof arch?.modality === "string" ? arch.modality.trim() : "";
-        return raw.length > 0 ? raw : null;
-      })();
-
-      const createdAtMs = (() => {
-        const created = obj.created;
-        if (typeof created !== "number" || !Number.isFinite(created) || created <= 0) return null;
-        // OpenRouter uses unix timestamp seconds.
-        return Math.round(created * 1000);
-      })();
-
-      return {
-        id,
-        contextLength,
-        maxCompletionTokens,
-        supportedParametersCount,
-        modality,
-        inferredParamB: inferParamBFromIdOrName(`${id} ${name}`),
-        createdAtMs,
-      } satisfies OpenRouterModelEntry;
-    })
-    .filter((v): v is OpenRouterModelEntry => Boolean(v));
-
-  const freeModelsAll = catalogModels.filter((m) => m.id.endsWith(":free"));
-  const freeModelsAgeFiltered = freeModelsAll.filter((m) => {
-    if (!applyMaxAgeFilter) return true;
-    if (m.createdAtMs === null) return false;
-    const ageMs = Date.now() - m.createdAtMs;
-    return ageMs >= 0 && ageMs <= MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
-  });
-
-  const freeModels = freeModelsAgeFiltered.filter((m) => {
-    if (m.inferredParamB === null) return true;
-    return m.inferredParamB >= MIN_PARAM_B;
-  });
+  const catalogModels = parseOpenRouterCatalog(await response.json());
+  const { freeModelsAll, freeModelsAgeFiltered, freeModels, ageFilteredIds, smallFilteredIds } =
+    filterOpenRouterFreeModels(catalogModels, {
+      maxAgeDays: MAX_AGE_DAYS,
+      minParamB: MIN_PARAM_B,
+    });
   if (freeModels.length === 0) {
     if (applyMaxAgeFilter) {
       throw new Error(
@@ -328,15 +238,7 @@ export async function refreshFree({
       `${cmdName}: filtered ${ageFilteredCount}/${freeModelsAll.length} old models (>${MAX_AGE_DAYS}d)\n`,
     );
     if (verbose) {
-      const filteredIds = freeModelsAll
-        .filter((m) => {
-          if (m.createdAtMs === null) return true;
-          const ageMs = Date.now() - m.createdAtMs;
-          return !(ageMs >= 0 && ageMs <= MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
-        })
-        .map((m) => m.id)
-        .sort((a, b) => a.localeCompare(b));
-      for (const id of filteredIds) stderr.write(`${dim(`skip ${id}`)}\n`);
+      for (const id of ageFilteredIds) stderr.write(`${dim(`skip ${id}`)}\n`);
     }
   }
 
@@ -346,29 +248,11 @@ export async function refreshFree({
       `${cmdName}: filtered ${filteredCount}/${freeModelsAgeFiltered.length} small models (<${MIN_PARAM_B}B)\n`,
     );
     if (verbose) {
-      const filteredIds = freeModelsAgeFiltered
-        .filter((m) => m.inferredParamB !== null && m.inferredParamB < MIN_PARAM_B)
-        .map((m) => m.id)
-        .sort((a, b) => a.localeCompare(b));
-      for (const id of filteredIds) stderr.write(`${dim(`skip ${id}`)}\n`);
+      for (const id of smallFilteredIds) stderr.write(`${dim(`skip ${id}`)}\n`);
     }
   }
 
-  const smartSorted = freeModels.slice().sort((a, b) => {
-    const aCreated = a.createdAtMs ?? -1;
-    const bCreated = b.createdAtMs ?? -1;
-    if (aCreated !== bCreated) return bCreated - aCreated;
-    const aContext = a.contextLength ?? -1;
-    const bContext = b.contextLength ?? -1;
-    if (aContext !== bContext) return bContext - aContext;
-    const aOut = a.maxCompletionTokens ?? -1;
-    const bOut = b.maxCompletionTokens ?? -1;
-    if (aOut !== bOut) return bOut - aOut;
-    if (a.supportedParametersCount !== b.supportedParametersCount) {
-      return b.supportedParametersCount - a.supportedParametersCount;
-    }
-    return a.id.localeCompare(b.id);
-  });
+  const smartSorted = rankOpenRouterModelsForBenchmark(freeModels);
 
   const freeIds = smartSorted.map((m) => m.id);
 
