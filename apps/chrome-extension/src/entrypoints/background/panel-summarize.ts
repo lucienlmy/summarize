@@ -7,6 +7,7 @@ import { createCachedExtract, type CachedExtract } from "./cached-extract";
 import type { ExtractResponse } from "./content-script-bridge";
 import type { ExtractorContext } from "./extractors/router";
 import { ensurePreparedPanelTranscript, preparePanelContent } from "./panel-content-preparation";
+import { startPanelDaemonSummary } from "./panel-summary-daemon";
 import type { BrowserYoutubeLocalTranscript } from "./youtube-local-transcript";
 import { extractYouTubeTranscriptInTab } from "./youtube-transcript";
 
@@ -368,37 +369,20 @@ export async function summarizeActiveTab({
       browserTranscriptTimedText && resolvedPayload.text.trim().length > 0
         ? "page"
         : effectiveInputMode;
-    const body = buildSummarizeRequestBody({
+    id = await startPanelDaemonSummary({
       extracted: resolvedPayload,
       settings,
       noCache: Boolean(opts?.refresh),
       inputMode: requestInputMode,
       timestamps: summaryTimestamps,
       slides: summarySlides,
-    });
-    logPanel("summarize:request", {
-      url: resolvedPayload.url,
-      slides: wantsDaemonSlides,
-      slideRuntime: settings.slideRuntime,
-      slidesParallel: false,
-      timestamps: summaryTimestamps,
-    });
-    const res = await fetchImpl("http://127.0.0.1:8787/v1/summarize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${settings.token.trim()}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
       signal: controller.signal,
+      fetchImpl,
+      buildSummarizeRequestBody,
+      log: logPanel,
     });
-    const json = (await res.json()) as { ok: boolean; id?: string; error?: string };
     if (isSuperseded()) return;
-    if (!res.ok || !json.ok || !json.id) {
-      throw new Error(json.error || `${res.status} ${res.statusText}`);
-    }
     session.daemonStatus.markReady();
-    id = json.id;
   } catch (err) {
     if (isSuperseded()) return;
     if (settings.slideRuntime === "browser") {
