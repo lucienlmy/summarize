@@ -67,7 +67,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => "blob:mock");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -91,7 +92,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => "blob:mock");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -113,7 +115,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => "blob:cache");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const url = "http://127.0.0.1:8787/v1/slides/abc/3";
 
@@ -153,7 +156,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => objectUrls.shift() ?? "blob:next");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -186,7 +190,8 @@ describe("slide image loader", () => {
     globalThis.fetch = fetchSpy;
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "", extendedLogging: true }) as Settings,
+      loadSettings: async () =>
+        ({ token: "", daemonPort: "8787", extendedLogging: true }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -228,7 +233,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => "blob:io");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -273,7 +279,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => "blob:visible");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -320,7 +327,8 @@ describe("slide image loader", () => {
     mockCreateObjectUrl(() => "blob:late-visible");
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
     });
     const wrapper = document.createElement("div");
     wrapper.className = "slideStrip__thumb";
@@ -395,7 +403,8 @@ describe("slide image loader", () => {
     const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
 
     const loader = createSlideImageLoader({
-      loadSettings: async () => ({ token: "t", extendedLogging: false }) as Settings,
+      loadSettings: async () =>
+        ({ token: "t", daemonPort: "8787", extendedLogging: false }) as Settings,
       maxCacheEntries: 2,
     });
 

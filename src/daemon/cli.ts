@@ -55,7 +55,7 @@ function readPortArg(argv: string[]): number | null {
   const portRaw = readArgValue(argv, "--port");
   if (!portRaw) return null;
   const port = Number(portRaw);
-  if (!Number.isFinite(port) || port <= 0 || port >= 65535) throw new Error("Invalid --port");
+  if (!Number.isFinite(port) || port <= 0 || port > 65535) throw new Error("Invalid --port");
   return Math.floor(port);
 }
 
@@ -103,11 +103,12 @@ export async function handleDaemonRequest({
   if (sub === "install") {
     const token = readArgValue(normalizedArgv, "--token");
     if (!token) throw new Error("Missing --token");
-    const port = readPortArg(normalizedArgv) ?? DAEMON_PORT_DEFAULT;
+    const requestedPort = readPortArg(normalizedArgv);
     const dev = hasArg(normalizedArgv, "--dev");
 
     const envSnapshot = buildEnvSnapshotFromEnv(envForRun);
     const existingConfig = await readDaemonConfig({ env: envForRun });
+    const port = requestedPort ?? existingConfig?.port ?? DAEMON_PORT_DEFAULT;
     const mergedTokens = existingConfig
       ? Array.from(new Set([...daemonConfigTokens(existingConfig), token.trim()]))
       : [token.trim()];

@@ -33,9 +33,8 @@ describe("options persistence", () => {
 
     const first = queuedRuntime.saveNow();
     const second = queuedRuntime.saveNow();
-    await second;
     await vi.advanceTimersByTimeAsync(20);
-    await first;
+    await Promise.all([first, second]);
 
     expect(blockedPersist).toHaveBeenCalledTimes(2);
     vi.useRealTimers();

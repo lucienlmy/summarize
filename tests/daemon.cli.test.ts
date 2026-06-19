@@ -174,7 +174,7 @@ describe("daemon cli", () => {
     };
 
     const handled = await handleDaemonRequest({
-      normalizedArgv: ["daemon", "run", "--token", "dev-token-123456", "--port", "18787"],
+      normalizedArgv: ["daemon", "run", "--token", "dev-token-123456", "--port", "65535"],
       envForRun,
       fetchImpl: fetch,
       stdout: new PassThrough(),
@@ -189,7 +189,7 @@ describe("daemon cli", () => {
         version: 2,
         token: "dev-token-123456",
         tokens: ["dev-token-123456"],
-        port: 18787,
+        port: 65535,
         env: expect.objectContaining({
           PATH: "/usr/bin:/bin",
           OPENAI_API_KEY: "from-run",
@@ -239,7 +239,7 @@ describe("daemon cli", () => {
       version: 2,
       token: "existing-token-1234",
       tokens: ["existing-token-1234"],
-      port: 8787,
+      port: 9931,
       env: {},
       installedAt: "2026-01-01T00:00:00.000Z",
     });
@@ -268,6 +268,7 @@ describe("daemon cli", () => {
       config: expect.objectContaining({
         token: "existing-token-1234",
         tokens: ["existing-token-1234", "new-token-123456"],
+        port: 9931,
       }),
     });
   });

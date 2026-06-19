@@ -367,7 +367,7 @@ function normalizeLineHeight(value: unknown): number {
   return Math.round(value * 100) / 100;
 }
 
-function normalizeDaemonPort(value: unknown): string {
+export function normalizeDaemonPort(value: unknown): string {
   if (typeof value !== "string" && typeof value !== "number") return DEFAULT_DAEMON_PORT;
   const trimmed = String(value).trim();
   if (!/^\d+$/.test(trimmed)) return DEFAULT_DAEMON_PORT;

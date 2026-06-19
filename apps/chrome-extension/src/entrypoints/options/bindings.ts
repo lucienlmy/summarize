@@ -1,3 +1,4 @@
+import { normalizeDaemonPort } from "../../lib/settings";
 import type { createLogsViewer } from "./logs-viewer";
 import type { createModelPresetsController } from "./model-presets";
 import type { createProcessesViewer } from "./processes-viewer";
@@ -74,6 +75,7 @@ export function bindOptionsInputs({
   elements.daemonPortEl.addEventListener("input", () => {
     window.clearTimeout(portRefreshTimer);
     portRefreshTimer = window.setTimeout(() => {
+      elements.daemonPortEl.value = normalizeDaemonPort(elements.daemonPortEl.value);
       // Persist first: the daemon origin is derived from the saved port, so the
       // status/preset/log checks below must read the new port from storage.
       void saveNow().then(() => {

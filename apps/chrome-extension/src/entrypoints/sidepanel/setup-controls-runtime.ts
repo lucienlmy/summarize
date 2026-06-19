@@ -69,6 +69,7 @@ export function createSetupControlsRuntime({
   const setupRuntime = createSetupRuntime({
     setupEl,
     loadToken: async () => (await loadSettings()).token.trim(),
+    loadDaemonPort: async () => (await loadSettings()).daemonPort,
     ensureToken,
     patchSettings,
     generateToken,

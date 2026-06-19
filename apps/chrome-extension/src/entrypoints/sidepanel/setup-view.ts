@@ -4,12 +4,14 @@ type PlatformKind = "mac" | "windows" | "linux" | "other";
 
 export function installStepsHtml({
   token,
+  daemonPort,
   headline,
   message,
   platformKind,
   showTroubleshooting,
 }: {
   token: string;
+  daemonPort: string;
   headline: string;
   message?: string;
   platformKind: PlatformKind;
@@ -17,7 +19,7 @@ export function installStepsHtml({
 }) {
   const npmCmd = "npm i -g @steipete/summarize";
   const brewCmd = "brew install summarize";
-  const daemonCmd = `summarize daemon install --token ${token}`;
+  const daemonCmd = `summarize daemon install --token ${token} --port ${daemonPort}`;
   const isMac = platformKind === "mac";
   const isLinux = platformKind === "linux";
   const isWindows = platformKind === "windows";
@@ -124,6 +126,7 @@ export function installStepsHtml({
 export function wireSetupButtons({
   setupEl,
   token,
+  daemonPort,
   platformKind,
   headerSetStatus,
   getStatusResetText,
@@ -133,6 +136,7 @@ export function wireSetupButtons({
 }: {
   setupEl: HTMLElement;
   token: string;
+  daemonPort: string;
   platformKind: PlatformKind;
   headerSetStatus: (text: string) => void;
   getStatusResetText: () => string;
@@ -142,7 +146,7 @@ export function wireSetupButtons({
 }) {
   const npmCmd = "npm i -g @steipete/summarize";
   const brewCmd = "brew install summarize";
-  const daemonCmd = `summarize daemon install --token ${token}`;
+  const daemonCmd = `summarize daemon install --token ${token} --port ${daemonPort}`;
   const isMac = platformKind === "mac";
   const installMethodKey = "summarize.installMethod";
   type InstallMethod = "npm" | "brew";

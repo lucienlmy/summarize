@@ -17,6 +17,7 @@ const drawerControls = { toggleDrawer: vi.fn(), toggleAdvancedSettings: vi.fn() 
 let capturedSetupOptions: {
   ensureToken: () => Promise<string>;
   loadToken: () => Promise<string>;
+  loadDaemonPort: () => Promise<string>;
 } | null = null;
 
 vi.mock("../apps/chrome-extension/src/entrypoints/sidepanel/model-presets", () => ({
@@ -35,7 +36,7 @@ vi.mock("../apps/chrome-extension/src/entrypoints/sidepanel/setup-runtime", () =
 }));
 
 function buildRuntime(loadToken = "token") {
-  const loadSettings = vi.fn(async () => ({ token: loadToken }));
+  const loadSettings = vi.fn(async () => ({ token: loadToken, daemonPort: "9931" }));
   const patchSettings = vi.fn(async () => ({}));
   const generateToken = vi.fn(() => "generated-token");
 
@@ -87,5 +88,6 @@ describe("sidepanel setup controls runtime", () => {
     expect(missing.generateToken).toHaveBeenCalledOnce();
     expect(missing.patchSettings).toHaveBeenCalledWith({ token: "generated-token" });
     expect(await capturedSetupOptions?.loadToken()).toBe("");
+    expect(await capturedSetupOptions?.loadDaemonPort()).toBe("9931");
   });
 });

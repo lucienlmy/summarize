@@ -109,7 +109,7 @@ export function isAuthorizedDaemonToken(candidate: string, tokens: readonly stri
 
 export function normalizeDaemonPort(raw: unknown): number {
   const port = typeof raw === "number" ? raw : DAEMON_PORT_DEFAULT;
-  if (!Number.isFinite(port) || port <= 0 || port >= 65535) {
+  if (!Number.isFinite(port) || port <= 0 || port > 65535) {
     throw new Error(`Invalid port: ${String(raw)}`);
   }
   return Math.floor(port);

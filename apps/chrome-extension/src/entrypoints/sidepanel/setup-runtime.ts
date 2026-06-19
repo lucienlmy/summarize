@@ -28,6 +28,7 @@ export function friendlyFetchError(err: unknown, context: string): string {
 export function createSetupRuntime(options: {
   setupEl: HTMLDivElement;
   loadToken: () => Promise<string>;
+  loadDaemonPort: () => Promise<string>;
   ensureToken: () => Promise<string>;
   patchSettings: typeof import("../../lib/settings").patchSettings;
   generateToken: typeof import("../../lib/token").generateToken;
@@ -36,7 +37,7 @@ export function createSetupRuntime(options: {
 }) {
   const platformKind = resolvePlatformKind();
 
-  const renderSetup = (
+  const renderSetup = async (
     token: string,
     copy: {
       headline: string;
@@ -47,9 +48,11 @@ export function createSetupRuntime(options: {
         "Install summarize, then register the daemon so the side panel can stream summaries.",
     },
   ) => {
+    const daemonPort = await options.loadDaemonPort();
     options.setupEl.classList.remove("hidden");
     options.setupEl.innerHTML = installStepsHtml({
       token,
+      daemonPort,
       headline: copy.headline,
       message: copy.message,
       platformKind,
@@ -57,12 +60,15 @@ export function createSetupRuntime(options: {
     wireSetupButtons({
       setupEl: options.setupEl,
       token,
+      daemonPort,
       platformKind,
       headerSetStatus: options.headerSetStatus,
       getStatusResetText: options.getStatusResetText,
       patchSettings: options.patchSettings,
       generateToken: options.generateToken,
-      renderSetup: (nextToken) => renderSetup(nextToken, copy),
+      renderSetup: (nextToken) => {
+        void renderSetup(nextToken, copy);
+      },
     });
   };
 
@@ -98,16 +104,18 @@ export function createSetupRuntime(options: {
           };
     if (!state.settings.tokenPresent) {
       void options.ensureToken().then((token) => {
-        renderSetup(token, copy);
+        void renderSetup(token, copy);
       });
       return display;
     }
     if (!state.daemon.ok || !state.daemon.authed) {
       options.setupEl.classList.remove("hidden");
-      void options.loadToken().then((token) => {
-        options.setupEl.innerHTML = `
+      void Promise.all([options.loadToken(), options.loadDaemonPort()]).then(
+        ([token, daemonPort]) => {
+          options.setupEl.innerHTML = `
           ${installStepsHtml({
             token,
+            daemonPort,
             headline:
               display === "advisory" ? "Daemon capabilities unavailable" : "Daemon not reachable",
             message: state.daemon.error ?? "Check that the LaunchAgent is installed.",
@@ -115,17 +123,21 @@ export function createSetupRuntime(options: {
             showTroubleshooting: true,
           })}
         `;
-        wireSetupButtons({
-          setupEl: options.setupEl,
-          token,
-          platformKind,
-          headerSetStatus: options.headerSetStatus,
-          getStatusResetText: options.getStatusResetText,
-          patchSettings: options.patchSettings,
-          generateToken: options.generateToken,
-          renderSetup: (nextToken) => renderSetup(nextToken, copy),
-        });
-      });
+          wireSetupButtons({
+            setupEl: options.setupEl,
+            token,
+            daemonPort,
+            platformKind,
+            headerSetStatus: options.headerSetStatus,
+            getStatusResetText: options.getStatusResetText,
+            patchSettings: options.patchSettings,
+            generateToken: options.generateToken,
+            renderSetup: (nextToken) => {
+              void renderSetup(nextToken, copy);
+            },
+          });
+        },
+      );
       return display;
     }
     options.setupEl.classList.add("hidden");

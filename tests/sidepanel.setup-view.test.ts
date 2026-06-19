@@ -5,17 +5,20 @@ describe("sidepanel setup view", () => {
   it("renders the official Homebrew formula for mac setup", () => {
     const html = installStepsHtml({
       token: "token",
+      daemonPort: "9931",
       headline: "Setup",
       platformKind: "mac",
     });
 
     expect(html).toContain("brew install summarize");
+    expect(html).toContain("summarize daemon install --token token --port 9931");
     expect(html).not.toContain("steipete/tap/summarize");
   });
 
   it("shows npm guidance for non-mac setup instead of the old tap warning", () => {
     const html = installStepsHtml({
       token: "token",
+      daemonPort: "8787",
       headline: "Setup",
       platformKind: "linux",
     });

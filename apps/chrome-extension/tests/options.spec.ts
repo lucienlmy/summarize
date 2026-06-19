@@ -404,6 +404,9 @@ test("options persists a custom daemon port", async ({ browserName: _browserName
         return settings.daemonPort;
       })
       .toBe("8788");
+    await page.locator("#daemonPort").fill("65536");
+    await expect(page.locator("#daemonPort")).toHaveValue("8787");
+    await expect.poll(async () => (await getSettings(harness)).daemonPort).toBe("8787");
     assertNoErrors(harness);
   } finally {
     await closeExtension(harness.context, harness.userDataDir);

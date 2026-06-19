@@ -5,16 +5,18 @@ const setupViewMocks = vi.hoisted(() => ({
   installStepsHtml: vi.fn(
     ({
       token,
+      daemonPort,
       headline,
       message,
       showTroubleshooting,
     }: {
       token: string;
+      daemonPort: string;
       headline: string;
       message?: string;
       showTroubleshooting?: boolean;
     }) =>
-      `headline=${headline};token=${token};message=${message ?? ""};troubleshooting=${
+      `headline=${headline};token=${token};port=${daemonPort};message=${message ?? ""};troubleshooting=${
         showTroubleshooting ? "yes" : "no"
       }`,
   ),
@@ -38,6 +40,8 @@ function stubNavigator(value: Partial<Navigator> & { userAgentData?: { platform?
 function flushPromises() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
+
+const loadDaemonPort = vi.fn(async () => "9931");
 
 function makeUiState(overrides?: Partial<UiState>): UiState {
   return {
@@ -110,6 +114,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken,
       loadToken,
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),
@@ -155,6 +160,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken: vi.fn(async () => "unused-token"),
       loadToken,
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),
@@ -192,6 +198,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken: vi.fn(async () => "unused-token"),
       loadToken: vi.fn(async () => "unused-token"),
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),
@@ -211,6 +218,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken,
       loadToken,
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),
@@ -245,6 +253,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken,
       loadToken,
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),
@@ -284,6 +293,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken,
       loadToken: vi.fn(async () => "unused-token"),
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),
@@ -318,6 +328,7 @@ describe("sidepanel setup runtime behavior", () => {
       setupEl,
       ensureToken,
       loadToken,
+      loadDaemonPort,
       patchSettings: vi.fn() as never,
       generateToken: vi.fn() as never,
       headerSetStatus: vi.fn(),

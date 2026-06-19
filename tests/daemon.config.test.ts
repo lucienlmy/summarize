@@ -40,8 +40,10 @@ describe("daemon config", () => {
 
     expect(normalizeDaemonPort(undefined)).toBe(DAEMON_PORT_DEFAULT);
     expect(normalizeDaemonPort(3000.9)).toBe(3000);
+    expect(normalizeDaemonPort(65535)).toBe(65535);
     expect(() => normalizeDaemonPort(Number.NaN)).toThrow(/Invalid port/);
     expect(() => normalizeDaemonPort(0)).toThrow(/Invalid port/);
+    expect(() => normalizeDaemonPort(65536)).toThrow(/Invalid port/);
     expect(() => normalizeDaemonPort(70000)).toThrow(/Invalid port/);
   });
 
