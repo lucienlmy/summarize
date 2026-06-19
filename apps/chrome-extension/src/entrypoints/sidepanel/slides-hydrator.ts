@@ -1,3 +1,4 @@
+import { getDaemonOrigin } from "../../lib/daemon-url";
 import type { SseSlidesData } from "../../lib/runtime-contracts";
 import { normalizeSlidesPayload } from "./slides-payload";
 import {
@@ -82,10 +83,10 @@ export function createSlidesHydrator(options: SlidesHydratorOptions): SlidesHydr
       }
       const token = (await getToken()).trim();
       if (!token) return;
-      const res = await (snapshotFetchImpl ?? fetch)(
-        `http://127.0.0.1:8787/v1/summarize/${runId}/slides`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const origin = await getDaemonOrigin();
+      const res = await (snapshotFetchImpl ?? fetch)(`${origin}/v1/summarize/${runId}/slides`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) return;
       const json = (await res.json()) as SnapshotResponse;
       if (!json?.ok || !json.slides) return;

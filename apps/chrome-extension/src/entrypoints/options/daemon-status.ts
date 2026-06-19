@@ -1,3 +1,5 @@
+import { getDaemonOrigin } from "../../lib/daemon-url";
+
 const DAEMON_STATUS_TIMEOUT_MS = 5000;
 const DAEMON_STATUS_RETRY_DELAY_MS = 400;
 const DAEMON_STATUS_MAX_ATTEMPTS = 2;
@@ -78,7 +80,8 @@ export function createDaemonStatusChecker({
     setDaemonStatus("Checking daemon…");
 
     try {
-      const res = await fetchWithRetry("http://127.0.0.1:8787/health");
+      const origin = await getDaemonOrigin();
+      const res = await fetchWithRetry(`${origin}/health`);
       if (checkId !== daemonCheckId) return;
       if (!res.ok) {
         setDaemonStatus(
@@ -93,7 +96,7 @@ export function createDaemonStatusChecker({
       const versionNote = daemonVersion ? `v${daemonVersion}` : "version unknown";
 
       try {
-        const ping = await fetchWithRetry("http://127.0.0.1:8787/v1/ping", {
+        const ping = await fetchWithRetry(`${origin}/v1/ping`, {
           headers: { Authorization: `Bearer ${trimmedToken}` },
         });
         if (checkId !== daemonCheckId) return;

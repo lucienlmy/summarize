@@ -28,6 +28,7 @@ const {
   formEl,
   statusEl,
   tokenEl,
+  daemonPortEl,
   tokenCopyBtn,
   summaryRuntimeModeRoot,
   providerEl,
@@ -221,6 +222,7 @@ let booleanSettings: ReturnType<typeof createBooleanSettingsRuntime> | null = nu
 let refreshRuntimeStatus = (_token = tokenEl.value) => {};
 const settingsElements = {
   tokenEl,
+  daemonPortEl,
   providerEl,
   providerApiKeyEl,
   providerBaseUrlEl,
@@ -487,6 +489,7 @@ bindOptionsInputs({
   elements: {
     formEl,
     tokenEl,
+    daemonPortEl,
     tokenCopyBtn,
     modelPresetEl,
     modelCustomEl,

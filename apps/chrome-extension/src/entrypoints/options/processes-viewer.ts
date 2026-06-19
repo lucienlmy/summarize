@@ -1,3 +1,5 @@
+import { getDaemonOrigin } from "../../lib/daemon-url";
+
 type ProcessStatus = "running" | "exited" | "error";
 
 type ProcessListItem = {
@@ -215,7 +217,8 @@ export function createProcessesViewer(options: ProcessesViewerOptions): Processe
     const stream =
       streamEl.value === "stdout" || streamEl.value === "stderr" ? streamEl.value : "merged";
     try {
-      const url = new URL(`http://127.0.0.1:8787/v1/processes/${requestedId}/logs`);
+      const origin = await getDaemonOrigin();
+      const url = new URL(`${origin}/v1/processes/${requestedId}/logs`);
       url.searchParams.set("tail", String(tail));
       url.searchParams.set("stream", stream);
       const res = await (fetchImpl ?? fetch)(url.toString(), {
@@ -265,7 +268,8 @@ export function createProcessesViewer(options: ProcessesViewerOptions): Processe
       setMeta("Loading processes…");
     }
     try {
-      const url = new URL("http://127.0.0.1:8787/v1/processes");
+      const origin = await getDaemonOrigin();
+      const url = new URL(`${origin}/v1/processes`);
       url.searchParams.set("includeCompleted", showCompletedEl.checked ? "true" : "false");
       url.searchParams.set("limit", String(limit));
       const res = await (fetchImpl ?? fetch)(url.toString(), {

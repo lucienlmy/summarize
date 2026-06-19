@@ -518,3 +518,143 @@ test("sidepanel streams split slide summary chunks into gallery cards", async ({
     await closeExtension(harness.context, harness.userDataDir);
   }
 });
+
+test("daemon slides use the configured port and never leak the token off-origin", async ({
+  browserName: _browserName,
+}, testInfo) => {
+  const harness = await launchExtension(getBrowserFromProject(testInfo.project.name));
+
+  try {
+    await seedSettings(harness, {
+      token: "test-token",
+      daemonPort: "8799",
+      autoSummarize: false,
+      slidesEnabled: true,
+      slidesParallel: true,
+      slidesOcrEnabled: true,
+    });
+    const page = await openExtensionPage(harness, "sidepanel.html", "#title");
+    await waitForPanelPort(page);
+    await waitForSettingsHydratedHook(page);
+
+    const sseBody = (text: string) =>
+      ["event: chunk", `data: ${JSON.stringify({ text })}`, "", "event: done", "data: {}", ""].join(
+        "\n",
+      );
+
+    // Summary + slides streams are served only from the CONFIGURED port (8799): if the
+    // extension still hardcoded 8787 these routes would never be hit and the run would stall.
+    await page.route("http://127.0.0.1:8799/v1/summarize/run-x/events", async (route) => {
+      await route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: sseBody("Summary X"),
+      });
+    });
+
+    const slidesPayload = {
+      sourceUrl: "https://www.youtube.com/watch?v=port123",
+      sourceId: "port-run",
+      sourceKind: "youtube",
+      ocrAvailable: true,
+      slides: [
+        {
+          index: 1,
+          timestamp: 0,
+          imageUrl: "http://127.0.0.1:8799/v1/slides/port-run/1?v=1",
+          ocrText: "Daemon slide one has enough OCR text to pass thresholds.",
+        },
+        {
+          index: 2,
+          timestamp: 10,
+          // Hostile daemon-shaped URL on a foreign origin: must never receive the token.
+          imageUrl: "http://evil.test/v1/summarize/port-run/2?v=1",
+          ocrText: "Foreign slide two has enough OCR text to pass thresholds.",
+        },
+      ],
+    };
+    const slidesStreamBody = [
+      "event: slides",
+      `data: ${JSON.stringify(slidesPayload)}`,
+      "",
+      "event: done",
+      "data: {}",
+      "",
+    ].join("\n");
+    await page.route("http://127.0.0.1:8799/v1/summarize/run-x/slides/events", async (route) => {
+      await route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: slidesStreamBody,
+      });
+    });
+
+    const placeholderPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3kq0cAAAAASUVORK5CYII=",
+      "base64",
+    );
+    let daemonImageRequests = 0;
+    let daemonImageAuth: string | null = null;
+    await page.route("http://127.0.0.1:8799/v1/slides/**", async (route) => {
+      daemonImageRequests += 1;
+      daemonImageAuth = route.request().headers().authorization ?? null;
+      await route.fulfill({
+        status: 200,
+        headers: { "content-type": "image/png", "x-summarize-slide-ready": "1" },
+        body: placeholderPng,
+      });
+    });
+    let foreignImageRequests = 0;
+    let foreignImageAuth: string | null = null;
+    await page.route("http://evil.test/**", async (route) => {
+      foreignImageRequests += 1;
+      foreignImageAuth = route.request().headers().authorization ?? null;
+      await route.fulfill({
+        status: 200,
+        headers: { "content-type": "image/png", "x-summarize-slide-ready": "1" },
+        body: placeholderPng,
+      });
+    });
+
+    const tabState = buildUiState({
+      tab: { id: 1, url: "https://www.youtube.com/watch?v=port123", title: "Port Video" },
+      media: { hasVideo: true, hasAudio: true, hasCaptions: true },
+      settings: {
+        autoSummarize: false,
+        slidesEnabled: true,
+        slidesParallel: true,
+        slidesOcrEnabled: true,
+        tokenPresent: true,
+      },
+    });
+    await sendBgMessage(harness, { type: "ui:state", state: tabState });
+    await sendBgMessage(harness, {
+      type: "run:start",
+      run: {
+        id: "run-x",
+        url: "https://www.youtube.com/watch?v=port123",
+        title: "Port Video",
+        model: "auto",
+        reason: "manual",
+        slides: true,
+      },
+    });
+
+    // Custom-port proof: the run streams from 8799 and renders both slides.
+    await expect.poll(async () => await getPanelSummaryMarkdown(page)).toContain("Summary X");
+    await expect
+      .poll(async () => (await getPanelSlideDescriptions(page)).length)
+      .toBeGreaterThanOrEqual(2);
+    await expect.poll(() => daemonImageRequests).toBeGreaterThanOrEqual(1);
+    expect(daemonImageAuth).toBe("Bearer test-token");
+
+    // Security: the daemon token never follows a foreign-origin slide URL.
+    await page.waitForTimeout(500);
+    expect(foreignImageRequests).toBe(0);
+    expect(foreignImageAuth).toBeNull();
+
+    assertNoErrors(harness);
+  } finally {
+    await closeExtension(harness.context, harness.userDataDir);
+  }
+});

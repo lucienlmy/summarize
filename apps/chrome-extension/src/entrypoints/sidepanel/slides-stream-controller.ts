@@ -1,4 +1,5 @@
 import { parseSseStream, type RawSseMessage } from "@steipete/summarize-core/runtime";
+import { getDaemonOrigin } from "../../lib/daemon-url";
 import { parseSseEvent, type SseSlidesData } from "../../lib/runtime-contracts";
 
 export type SlidesStreamController = {
@@ -73,13 +74,11 @@ export function createSlidesStreamController(
     let sawDone = false;
 
     try {
-      const res = await (fetchImpl ?? fetch)(
-        `http://127.0.0.1:8787/v1/summarize/${runId}/slides/events`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: nextController.signal,
-        },
-      );
+      const origin = await getDaemonOrigin();
+      const res = await (fetchImpl ?? fetch)(`${origin}/v1/summarize/${runId}/slides/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: nextController.signal,
+      });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       if (!res.body) throw new Error("Missing stream body");
 

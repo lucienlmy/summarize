@@ -1,3 +1,4 @@
+import { daemonOrigin } from "../../lib/daemon-url";
 import { logExtensionEvent } from "../../lib/extension-logs";
 import { createCachedExtract, type CachedExtract } from "./cached-extract";
 import type { PanelSession } from "./panel-session-store";
@@ -66,8 +67,10 @@ export async function handlePanelSlidesContextRequest<Recovery, Status>(options:
   let transcriptTimedText = cached?.transcriptTimedText ?? null;
 
   if (!transcriptTimedText && settings.token.trim()) {
+    const origin = daemonOrigin(settings.daemonPort);
+
     try {
-      const res = await (fetchImpl ?? fetch)("http://127.0.0.1:8787/v1/summarize", {
+      const res = await (fetchImpl ?? fetch)(`${origin}/v1/summarize`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${settings.token.trim()}`,

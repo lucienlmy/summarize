@@ -1,3 +1,4 @@
+import { getDaemonOrigin } from "../../../lib/daemon-url";
 import type { Extractor, ExtractorContext, ExtractorResult } from "./types";
 
 type UrlDaemonExtractResponse = {
@@ -25,7 +26,9 @@ export const urlDaemonExtractor: Extractor = {
   name: "url-daemon",
   match: (ctx) => ctx.allowDaemon !== false && Boolean(ctx.token.trim()),
   async extract(ctx: ExtractorContext): Promise<ExtractorResult | null> {
-    const res = await ctx.fetchImpl("http://127.0.0.1:8787/v1/summarize", {
+    const origin = await getDaemonOrigin();
+
+    const res = await ctx.fetchImpl(`${origin}/v1/summarize`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ctx.token.trim()}`,

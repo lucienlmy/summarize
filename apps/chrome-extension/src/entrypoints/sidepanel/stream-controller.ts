@@ -1,4 +1,5 @@
 import { parseSseStream, type RawSseMessage } from "@steipete/summarize-core/runtime";
+import { getDaemonOrigin } from "../../lib/daemon-url";
 import { parseSseEvent, type SseMetaData, type SseSlidesData } from "../../lib/runtime-contracts";
 import {
   accumulateChatChunk,
@@ -174,13 +175,11 @@ export function createStreamController(options: StreamControllerOptions): Stream
     onStatus("Connecting…");
 
     try {
-      const res = await (fetchImpl ?? fetch)(
-        `http://127.0.0.1:8787/v1/summarize/${run.id}/events`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: nextController.signal,
-        },
-      );
+      const origin = await getDaemonOrigin();
+      const res = await (fetchImpl ?? fetch)(`${origin}/v1/summarize/${run.id}/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: nextController.signal,
+      });
       if (generation !== activeGeneration) return;
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       if (!res.body) throw new Error("Missing stream body");

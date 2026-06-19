@@ -4,6 +4,7 @@ import type {
 } from "@steipete/summarize-core/runtime";
 import { readAgentResponse } from "../../lib/agent-response";
 import { buildChatPageContent } from "../../lib/chat-context";
+import { daemonOrigin } from "../../lib/daemon-url";
 import {
   buildDirectAgentSystemPrompt,
   normalizeDirectMessages,
@@ -167,7 +168,9 @@ export async function handlePanelAgentRequest({
       return;
     }
 
-    const res = await fetchImpl("http://127.0.0.1:8787/v1/agent", {
+    const origin = daemonOrigin(settings.daemonPort);
+
+    const res = await fetchImpl(`${origin}/v1/agent`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${settings.token.trim()}`,
@@ -259,8 +262,10 @@ export async function handlePanelChatHistoryRequest({
     summaryText,
   });
 
+  const origin = daemonOrigin(settings.daemonPort);
+
   try {
-    const res = await fetchImpl("http://127.0.0.1:8787/v1/agent/history", {
+    const res = await fetchImpl(`${origin}/v1/agent/history`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${settings.token.trim()}`,

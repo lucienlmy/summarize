@@ -18,6 +18,7 @@ type TranscriberSetting = "" | NonNullable<SummarizeRequestOverrides["transcribe
 
 export type Settings = {
   token: string;
+  daemonPort: string;
   summaryRuntime: SummaryRuntime;
   provider: DirectProvider;
   providerApiKeys: Partial<Record<DirectProvider, string>>;
@@ -86,6 +87,7 @@ export const MAX_MAX_CHARS = 2_000_000;
 const MIN_MAX_OUTPUT_TOKENS = 16;
 const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = 20;
+export const DEFAULT_DAEMON_PORT = "8787";
 
 const legacyFontFamilyMap = new Map<string, string>([
   [
@@ -365,8 +367,18 @@ function normalizeLineHeight(value: unknown): number {
   return Math.round(value * 100) / 100;
 }
 
+function normalizeDaemonPort(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return DEFAULT_DAEMON_PORT;
+  const trimmed = String(value).trim();
+  if (!/^\d+$/.test(trimmed)) return DEFAULT_DAEMON_PORT;
+  const port = Number(trimmed);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return DEFAULT_DAEMON_PORT;
+  return String(port);
+}
+
 export const defaultSettings: Settings = {
   token: "",
+  daemonPort: DEFAULT_DAEMON_PORT,
   summaryRuntime: "direct",
   provider: "openai",
   providerApiKeys: {},
@@ -414,6 +426,7 @@ export async function loadSettings(): Promise<Settings> {
     ...defaultSettings,
     ...raw,
     token: typeof raw.token === "string" ? raw.token : defaultSettings.token,
+    daemonPort: normalizeDaemonPort(raw.daemonPort),
     summaryRuntime: normalizeSummaryRuntime(raw.summaryRuntime, raw),
     provider: normalizeProvider(raw.provider),
     providerApiKeys: normalizeProviderMap(raw.providerApiKeys),
@@ -487,6 +500,7 @@ export async function loadSettings(): Promise<Settings> {
 export async function saveSettings(settings: Settings): Promise<void> {
   const normalized = {
     ...settings,
+    daemonPort: normalizeDaemonPort(settings.daemonPort),
     summaryRuntime: normalizeSummaryRuntime(settings.summaryRuntime),
     provider: normalizeProvider(settings.provider),
     providerApiKeys: normalizeProviderMap(settings.providerApiKeys),

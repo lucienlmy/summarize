@@ -1,5 +1,6 @@
 import { parseSseStream } from "@steipete/summarize-core/runtime";
 import { readPresetOrCustomValue } from "../../lib/combo";
+import { daemonOrigin, getDaemonOrigin } from "../../lib/daemon-url";
 import { parseSseEvent } from "../../lib/runtime-contracts";
 import type { Settings } from "../../lib/settings";
 
@@ -145,7 +146,8 @@ export function createModelPresetsController({
       return;
     }
     try {
-      const response = await fetch("http://127.0.0.1:8787/v1/models", {
+      const origin = await getDaemonOrigin();
+      const response = await fetch(`${origin}/v1/models`, {
         headers: { Authorization: `Bearer ${trimmed}` },
       });
       if (!isCurrentRequest()) return;
@@ -216,7 +218,9 @@ export function createModelPresetsController({
 
   const runRefreshFree = async () => {
     if (refreshFreeRunning) return;
-    const token = (await loadSettings()).token.trim();
+    const settings = await loadSettings();
+    const token = settings.token.trim();
+    const origin = daemonOrigin(settings.daemonPort);
     if (!token) {
       setStatus("Setup required (missing token).", "error");
       return;
@@ -227,7 +231,7 @@ export function createModelPresetsController({
     let winnerModel: string | null = null;
 
     try {
-      const response = await fetch("http://127.0.0.1:8787/v1/refresh-free", {
+      const response = await fetch(`${origin}/v1/refresh-free`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -240,10 +244,9 @@ export function createModelPresetsController({
         throw new Error(json.error || `${response.status} ${response.statusText}`);
       }
 
-      const streamResponse = await fetch(
-        `http://127.0.0.1:8787/v1/refresh-free/${json.id}/events`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const streamResponse = await fetch(`${origin}/v1/refresh-free/${json.id}/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!streamResponse.ok)
         throw new Error(`${streamResponse.status} ${streamResponse.statusText}`);
       if (!streamResponse.body) throw new Error("Missing stream body");

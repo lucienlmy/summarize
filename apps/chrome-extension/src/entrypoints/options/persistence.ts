@@ -9,6 +9,7 @@ export function createOptionsSaveRuntime(options: {
   let saveInFlight = false;
   let saveQueued = false;
   let saveSequence = 0;
+  let queuedResolvers: Array<() => void> = [];
 
   const formatSaveError = (error: unknown) => {
     const message = error instanceof Error ? error.message.trim() : String(error).trim();
@@ -17,7 +18,13 @@ export function createOptionsSaveRuntime(options: {
 
   const saveNow = async () => {
     if (saveInFlight) {
+      // A save is already running. Queue one follow-up that captures the latest
+      // form state and resolve this call only after that write commits, so
+      // callers awaiting saveNow() observe the persisted result.
       saveQueued = true;
+      await new Promise<void>((resolve) => {
+        queuedResolvers.push(resolve);
+      });
       return;
     }
     saveInFlight = true;
@@ -37,7 +44,13 @@ export function createOptionsSaveRuntime(options: {
       saveInFlight = false;
       if (saveQueued) {
         saveQueued = false;
-        void saveNow();
+        const resolvers = queuedResolvers;
+        queuedResolvers = [];
+        void saveNow().finally(() => {
+          for (const resolve of resolvers) {
+            resolve();
+          }
+        });
       }
     }
   };

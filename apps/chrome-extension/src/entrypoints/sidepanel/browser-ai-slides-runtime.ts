@@ -1,4 +1,5 @@
 import { normalizeBrowserAiGeneratedPoints } from "../../lib/browser-summary";
+import { daemonOrigin } from "../../lib/daemon-url";
 import { logExtensionEvent } from "../../lib/extension-logs";
 import { isGeminiNanoModel } from "../../lib/model-routing";
 import { loadSettings } from "../../lib/settings";
@@ -27,7 +28,6 @@ type GeneratedSummary = {
 };
 
 const MODEL_LABEL = "Gemini Nano";
-const DAEMON_ORIGIN = "http://127.0.0.1:8787";
 const MAX_BATCH_SUMMARY_CHARS = 260;
 const REQUESTED_BATCH_SUMMARY_CHARS = 180;
 
@@ -178,10 +178,10 @@ function parseBatchResult(value: string, slides: SlideSource[]): Map<number, str
   return parsed;
 }
 
-function isDaemonSlideUrl(imageUrl: string): boolean {
+function isDaemonSlideUrl(imageUrl: string, origin: string): boolean {
   try {
     const url = new URL(imageUrl);
-    return url.origin === DAEMON_ORIGIN && url.pathname.startsWith("/v1/slides/");
+    return url.origin === origin && url.pathname.startsWith("/v1/slides/");
   } catch {
     return false;
   }
@@ -190,9 +190,10 @@ function isDaemonSlideUrl(imageUrl: string): boolean {
 async function loadSlideImage(imageUrl: string): Promise<Blob | null> {
   if (!imageUrl) return null;
   try {
+    const settings = await loadSettings();
     const headers = new Headers();
-    if (isDaemonSlideUrl(imageUrl)) {
-      const token = (await loadSettings()).token.trim();
+    if (isDaemonSlideUrl(imageUrl, daemonOrigin(settings.daemonPort))) {
+      const token = settings.token.trim();
       if (token) headers.set("Authorization", `Bearer ${token}`);
     }
     const response = await fetch(imageUrl, { headers });

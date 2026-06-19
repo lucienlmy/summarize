@@ -92,9 +92,10 @@ Dev (repo checkout):
   - Direct provider adapters: OpenAI-compatible SSE, Anthropic Messages SSE, and Gemini SSE, normalized to the same summary/chat/tool-call contracts.
   - Panel page streams SSE directly (MV3 service workers can be flaky for long-lived streams).
 - **Daemon (local, autostart service)**
-  - HTTP server on `127.0.0.1:8787` only.
+  - HTTP server on `127.0.0.1` (default port `8787`).
   - Token-authenticated API.
   - Runs the existing summarize pipeline (env/config-based) and streams tokens to client via SSE.
+  - Port is configurable: set **Options → Runtime → Daemon → Port** to match a daemon started with `summarize daemon install --port <n>` (e.g. when `8787` is taken by another service). The extension talks to `127.0.0.1:<port>` for every daemon call.
 
 ## Data Flow
 

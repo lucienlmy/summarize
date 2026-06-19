@@ -1,3 +1,5 @@
+import { getDaemonOrigin } from "../../lib/daemon-url";
+
 export function createModelPresetsController({
   presetEl,
   customEl,
@@ -118,7 +120,8 @@ export function createModelPresetsController({
       return;
     }
     try {
-      const res = await fetchImpl("http://127.0.0.1:8787/v1/models", {
+      const origin = await getDaemonOrigin();
+      const res = await fetchImpl(`${origin}/v1/models`, {
         headers: { Authorization: `Bearer ${trimmed}` },
       });
       if (!isCurrentRequest()) return;

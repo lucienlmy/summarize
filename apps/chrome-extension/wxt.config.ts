@@ -100,7 +100,7 @@ export default defineConfig({
         ...(browser === "firefox" ? [] : ["debugger" as const]),
       ],
       optional_permissions: browser === "firefox" ? ["userScripts"] : [],
-      host_permissions: ["<all_urls>", "http://127.0.0.1:8787/*"],
+      host_permissions: ["<all_urls>", "http://127.0.0.1/*"],
       background: {
         type: "module",
         service_worker: "background.js",

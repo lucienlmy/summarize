@@ -198,7 +198,8 @@ test("options exposes two AI connections and independent slide runtimes", async 
     await expect(page.locator("#modelPreset")).toContainText("Gemini Nano (on-device)");
     await page.click("#tab-runtime");
     await expect(page.locator("#panel-runtime")).toContainText("Browser cache");
-    await expect(page.locator("#panel-runtime")).toContainText("Daemon token");
+    await expect(page.locator("#panel-runtime #daemonPort")).toBeVisible();
+    await expect(page.locator("#panel-runtime #token")).toBeVisible();
     await expect(page.locator("#panel-runtime")).not.toContainText("Show summary first");
     await expect(page.locator("#browserCacheStatus")).toContainText(/entries? · /);
     await page.locator("#browserCacheClear").click();
@@ -382,6 +383,27 @@ test("options footer links to summarize site", async ({ browserName: _browserNam
     const page = await openExtensionPage(harness, "options.html", "#tabs");
     const summarizeLink = page.locator(".pageFooter a", { hasText: "Summarize" });
     await expect(summarizeLink).toHaveAttribute("href", /summarize\.sh/);
+    assertNoErrors(harness);
+  } finally {
+    await closeExtension(harness.context, harness.userDataDir);
+  }
+});
+
+test("options persists a custom daemon port", async ({ browserName: _browserName }, testInfo) => {
+  const harness = await launchExtension(getBrowserFromProject(testInfo.project.name));
+
+  try {
+    await seedSettings(harness, { daemonPort: "9931" });
+    const page = await openExtensionPage(harness, "options.html", "#tabs");
+    await page.click("#tab-runtime");
+    await expect(page.locator("#daemonPort")).toHaveValue("9931");
+    await page.locator("#daemonPort").fill("8788");
+    await expect
+      .poll(async () => {
+        const settings = await getSettings(harness);
+        return settings.daemonPort;
+      })
+      .toBe("8788");
     assertNoErrors(harness);
   } finally {
     await closeExtension(harness.context, harness.userDataDir);

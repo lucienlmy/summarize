@@ -1,3 +1,4 @@
+import { daemonOrigin } from "../../lib/daemon-url";
 import type { Settings } from "../../lib/settings";
 import type { ExtractResponse } from "./content-script-bridge";
 
@@ -44,7 +45,8 @@ export async function startPanelDaemonSummary(options: {
     slidesParallel: false,
     timestamps: options.timestamps,
   });
-  const response = await options.fetchImpl("http://127.0.0.1:8787/v1/summarize", {
+  const origin = daemonOrigin(options.settings.daemonPort);
+  const response = await options.fetchImpl(`${origin}/v1/summarize`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${options.settings.token.trim()}`,

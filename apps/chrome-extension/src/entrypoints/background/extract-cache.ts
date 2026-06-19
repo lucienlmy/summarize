@@ -1,4 +1,5 @@
 import { shouldPreferUrlMode } from "@steipete/summarize-core/content/url";
+import { daemonOrigin } from "../../lib/daemon-url";
 import { createCachedExtract, type CachedExtract } from "./cached-extract";
 import type { ExtractResponse } from "./content-script-bridge";
 import { routeExtract, type ExtractLog, type ExtractorContext } from "./extractors/router";
@@ -19,6 +20,7 @@ type LoadSettingsResult = {
   slideRuntime: "browser" | "daemon";
   slidesEnabled: boolean;
   token: string;
+  daemonPort: string;
 };
 
 const MIN_CHAT_CHARS = 100;
@@ -127,8 +129,10 @@ export async function ensureChatExtract({
     slides?: SlidesPayload | null;
     error?: string;
   };
+  const origin = daemonOrigin(settings.daemonPort);
+
   try {
-    res = await fetchImpl("http://127.0.0.1:8787/v1/summarize", {
+    res = await fetchImpl(`${origin}/v1/summarize`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${settings.token.trim()}`,

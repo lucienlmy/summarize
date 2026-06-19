@@ -1,3 +1,4 @@
+import { getDaemonOrigin } from "../../lib/daemon-url";
 import { readExtensionLogs } from "../../lib/extension-logs";
 
 type LogLevel = "info" | "warn" | "error" | "verbose";
@@ -335,8 +336,9 @@ export function createLogsViewer(options: LogsViewerOptions): LogsViewer {
         setLines(result.lines);
         return;
       }
+      const origin = await getDaemonOrigin();
 
-      const url = new URL("http://127.0.0.1:8787/v1/logs");
+      const url = new URL(`${origin}/v1/logs`);
       url.searchParams.set("source", source);
       url.searchParams.set("tail", String(tail));
       const res = await (fetchImpl ?? fetch)(url.toString(), {

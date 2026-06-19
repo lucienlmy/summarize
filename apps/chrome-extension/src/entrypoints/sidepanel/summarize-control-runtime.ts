@@ -1,3 +1,4 @@
+import { getDaemonOrigin } from "../../lib/daemon-url";
 import type { Settings, SlidesLayout } from "../../lib/settings";
 import { applyPanelStateAction, type PanelStateAction } from "./panel-state-store";
 import type { SlideTextMode } from "./slides-state";
@@ -42,7 +43,8 @@ async function fetchSlideTools(
 ): Promise<{ ok: boolean; missing: string[] }> {
   const token = tokenValue.trim();
   if (!token) return { ok: false, missing: ["daemon token"] };
-  const res = await fetch("http://127.0.0.1:8787/v1/tools", {
+  const origin = await getDaemonOrigin();
+  const res = await fetch(`${origin}/v1/tools`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return { ok: false, missing: ["daemon tools endpoint"] };

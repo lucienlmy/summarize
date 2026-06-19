@@ -11,6 +11,7 @@ export function getOptionsElements() {
     formEl: byId<HTMLFormElement>("form"),
     statusEl: byId<HTMLSpanElement>("status"),
     tokenEl: byId<HTMLInputElement>("token"),
+    daemonPortEl: byId<HTMLInputElement>("daemonPort"),
     tokenCopyBtn: byId<HTMLButtonElement>("tokenCopy"),
     summaryRuntimeModeRoot: byId<HTMLDivElement>("summaryRuntimeMode"),
     providerEl: byId<HTMLSelectElement>("provider"),

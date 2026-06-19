@@ -5,6 +5,7 @@ import type { createModelPresetsController } from "./model-presets";
 
 type FormElements = {
   tokenEl: HTMLInputElement;
+  daemonPortEl: HTMLInputElement;
   providerEl: HTMLSelectElement;
   providerApiKeyEl: HTMLInputElement;
   providerBaseUrlEl: HTMLInputElement;
@@ -60,6 +61,7 @@ export function buildSavedOptionsSettings({
 }): Settings {
   return {
     token: elements.tokenEl.value || defaults.token,
+    daemonPort: elements.daemonPortEl.value || defaults.daemonPort,
     summaryRuntime: booleans.summaryRuntime,
     provider: elements.providerEl.value as DirectProvider,
     providerApiKeys: {
@@ -127,6 +129,7 @@ export function applyLoadedOptionsSettings({
   elements: FormElements;
 }) {
   elements.tokenEl.value = settings.token;
+  elements.daemonPortEl.value = settings.daemonPort;
   elements.providerEl.value = settings.provider;
   elements.providerApiKeyEl.value = settings.providerApiKeys[settings.provider] ?? "";
   elements.providerBaseUrlEl.value = settings.providerBaseUrls[settings.provider] ?? "";

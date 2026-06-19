@@ -1,3 +1,4 @@
+import { daemonOrigin } from "../../lib/daemon-url";
 import { logExtensionEvent } from "../../lib/extension-logs";
 import { loadSettings, type Settings } from "../../lib/settings";
 
@@ -10,7 +11,18 @@ export function normalizeSlideImageUrl(
   index: number,
 ): string {
   if (!imageUrl) return "";
-  const stablePrefix = `http://127.0.0.1:8787/v1/slides/${sourceId}`;
+  if (!imageUrl.includes("/v1/slides/") && !imageUrl.includes("/v1/summarize/")) return imageUrl;
+  let url: URL;
+  try {
+    url = new URL(imageUrl);
+  } catch {
+    return imageUrl;
+  }
+  // Only ever rewrite URLs served by the local daemon (127.0.0.1). Never turn a
+  // foreign-origin, daemon-shaped URL into a stable daemon URL — the loader below
+  // attaches the daemon token, which must stay on the local daemon origin.
+  if (url.hostname !== "127.0.0.1") return imageUrl;
+  const stablePrefix = `${url.origin}/v1/slides/${sourceId}`;
   if (imageUrl.startsWith(stablePrefix)) return imageUrl;
   if (!imageUrl.includes("/v1/summarize/")) return imageUrl;
   const queryIndex = imageUrl.indexOf("?");
@@ -99,6 +111,15 @@ export function createSlideImageLoader(
         const settings = await loadSettingsFn();
         const token = settings.token.trim();
         if (!token) return null;
+        // Never send the daemon bearer token anywhere but the configured local
+        // daemon origin, even if a slide payload carries a foreign-origin URL.
+        let sameDaemonOrigin = false;
+        try {
+          sameDaemonOrigin = new URL(imageUrl).origin === daemonOrigin(settings.daemonPort);
+        } catch {
+          return null;
+        }
+        if (!sameDaemonOrigin) return null;
         const res = await fetch(imageUrl, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) {
           if (settings.extendedLogging) {
