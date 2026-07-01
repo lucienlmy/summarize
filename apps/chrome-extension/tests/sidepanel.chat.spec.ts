@@ -515,7 +515,6 @@ test("hover tooltip proxies daemon calls via background (no page-origin localhos
       hoverSummaries: true,
       summaryRuntime: "daemon",
     });
-    await mockDaemonSummarize(harness);
 
     let routedSummarizeCalls = 0;
     await harness.context.route("http://127.0.0.1:8787/v1/summarize", async (route) => {
@@ -576,9 +575,7 @@ test("hover tooltip proxies daemon calls via background (no page-origin localhos
     });
     expect(hoverResponse).toEqual(expect.objectContaining({ ok: true }));
 
-    await expect
-      .poll(async () => (await getSummarizeCalls(harness)) + routedSummarizeCalls)
-      .toBeGreaterThan(0);
+    await expect.poll(() => routedSummarizeCalls).toBeGreaterThan(0);
     await expect.poll(() => eventsCalls).toBeGreaterThan(0);
 
     assertNoErrors(harness);
