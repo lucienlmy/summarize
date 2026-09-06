@@ -140,7 +140,7 @@ Goal:
 
 ## Firefox Extension (Self-Hosted via AMO)
 
-**Context**: This extension uses UUID-based extension ID `{284b5e44-952a-4aa3-8bd3-7ae89d741cde}` for team collaboration. The artifact is signed via Mozilla Add-ons (AMO) for self-distribution (not listed in AMO catalog).
+**Context**: Firefox builds declare the extension ID `summarize-test@steipete.com`, also used by previous releases. Preserve that identity when submitting updates to Mozilla Add-ons (AMO) for self-distribution (not listed in the AMO catalog); the GitHub ZIP must be signed through AMO before regular Firefox installation.
 
 **Building the artifact**:
 

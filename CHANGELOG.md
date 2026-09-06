@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.13 - Unreleased
+
+### Documentation
+
+- Correct Firefox signing guidance to match the extension ID in published packages.
+
 ## 0.21.12 - 2026-09-06
 
 **Highlight:** a reliability and architecture cleanup release, including live-tested fixes for OpenAI image inputs, podcast feed routing, and missing slide frames.
